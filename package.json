@@ -13,5 +13,8 @@
     "messenger"
   ],
   "license": "MIT",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "express": "^5.2.1"
+  }
 }
