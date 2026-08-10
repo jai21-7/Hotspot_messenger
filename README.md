@@ -11,9 +11,9 @@ A simple group chat website that works on a **Wi‑Fi hotspot / local network** 
 
 ## Status
 
-**Step 1 done:** project skeleton (`package.json`, README, `.gitignore`).
+**Step 2 done:** Express server serves a Hello page on port 3000.
 
-Next steps will add the web server, chat UI, and live messaging with Socket.io.
+Next steps will add the chat UI and live messaging with Socket.io.
 
 ## Requirements
 
@@ -27,15 +27,18 @@ node -v
 npm -v
 ```
 
-## Run (coming soon)
-
-After we add the server in Step 2:
+## Run
 
 ```bash
 npm start
 ```
 
 Then open `http://localhost:3000` on the host device.
+
+To test from another phone on the same hotspot/Wi‑Fi:
+
+1. On the host (Windows), run `ipconfig` and find the IPv4 address (often like `192.168.43.1` or `192.168.x.x`).
+2. On the phone, open `http://THAT_IP:3000` in the browser.
 
 ## Learning path
 
