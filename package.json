@@ -1,0 +1,17 @@
+{
+  "name": "hotspot-messenger",
+  "version": "1.0.0",
+  "description": "Local Wi-Fi/hotspot group chat — message nearby devices without mobile data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "chat",
+    "hotspot",
+    "lan",
+    "messenger"
+  ],
+  "license": "MIT",
+  "private": true
+}
