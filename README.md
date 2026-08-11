@@ -11,9 +11,9 @@ A simple group chat website that works on a **Wi‑Fi hotspot / local network** 
 
 ## Status
 
-**Step 2 done:** Express server serves a Hello page on port 3000.
+**Step 3 done:** Chat page layout (name field, messages area, send form) with CSS.
 
-Next steps will add the chat UI and live messaging with Socket.io.
+Next: client JavaScript (Step 4), then live messaging with Socket.io (Step 5).
 
 ## Requirements
 
