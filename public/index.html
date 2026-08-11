@@ -15,17 +15,26 @@
 
       <section class="name-section" aria-label="Your display name">
         <label for="display-name">Your name</label>
-        <input
-          id="display-name"
-          type="text"
-          maxlength="24"
-          placeholder="Enter your name"
-          autocomplete="nickname"
-        />
+        <div class="name-row">
+          <input
+            id="display-name"
+            type="text"
+            maxlength="24"
+            placeholder="Enter your name"
+            autocomplete="nickname"
+          />
+          <button type="button" id="join-button">Join</button>
+        </div>
+        <p class="join-hint" id="join-hint">Enter a name and tap Join to chat.</p>
+      </section>
+
+      <section class="online-section" aria-label="Online users">
+        <h2 class="online-title">Online</h2>
+        <p class="online-list" id="online-list">Nobody online yet</p>
       </section>
 
       <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
-        <p class="empty-state">No messages yet. Say hello!</p>
+        <p class="empty-state">No messages yet. Join and say hello!</p>
       </section>
 
       <form class="composer" id="chat-form" autocomplete="off">
@@ -33,10 +42,11 @@
         <input
           id="message-input"
           type="text"
-          placeholder="Type a message..."
+          placeholder="Join with a name to chat..."
           maxlength="500"
+          disabled
         />
-        <button type="submit" id="send-button">Send</button>
+        <button type="submit" id="send-button" disabled>Send</button>
       </form>
     </div>
     <!-- Socket.io client library (served automatically by the server) -->
