@@ -5,22 +5,57 @@ const socket = io();
 const chatForm = document.getElementById("chat-form");
 const messageInput = document.getElementById("message-input");
 const displayNameInput = document.getElementById("display-name");
+const joinButton = document.getElementById("join-button");
+const joinHint = document.getElementById("join-hint");
+const onlineListEl = document.getElementById("online-list");
 const messagesEl = document.getElementById("messages");
+const sendButton = document.getElementById("send-button");
+
+let hasJoined = false;
+
+function joinChat() {
+  const name = displayNameInput.value.trim();
+  if (!name) {
+    displayNameInput.focus();
+    alert("Please enter your name first.");
+    return;
+  }
+
+  // Tell the server our display name
+  socket.emit("join", name);
+
+  hasJoined = true;
+  displayNameInput.disabled = true;
+  joinButton.disabled = true;
+  messageInput.disabled = false;
+  sendButton.disabled = false;
+  messageInput.placeholder = "Type a message...";
+  joinHint.textContent = `Joined as ${name}`;
+  messageInput.focus();
+}
+
+joinButton.addEventListener("click", joinChat);
+
+// Press Enter in the name box to join
+displayNameInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    joinChat();
+  }
+});
 
 // When the user clicks Send (or presses Enter), run this function
 chatForm.addEventListener("submit", function (event) {
   // Stop the browser from reloading the page (default form behavior)
   event.preventDefault();
 
-  const name = displayNameInput.value.trim();
-  const text = messageInput.value.trim();
-
-  // Name is required so others know who wrote the message
-  if (!name) {
+  if (!hasJoined) {
+    alert("Please join with a name first.");
     displayNameInput.focus();
-    alert("Please enter your name first.");
     return;
   }
+
+  const text = messageInput.value.trim();
 
   // Don't send empty messages
   if (!text) {
@@ -28,8 +63,8 @@ chatForm.addEventListener("submit", function (event) {
     return;
   }
 
-  // Send the message to the server (server will broadcast to everyone)
-  socket.emit("chat message", { name, text });
+  // Server already knows our name from the join step
+  socket.emit("chat message", { text });
 
   // Clear the box and focus it again for the next message
   messageInput.value = "";
@@ -41,14 +76,23 @@ socket.on("chat message", function (data) {
   addMessage(data.name, data.text);
 });
 
-function addMessage(name, text) {
-  // Remove the "No messages yet" hint the first time we get a message
-  const emptyState = messagesEl.querySelector(".empty-state");
-  if (emptyState) {
-    emptyState.remove();
-  }
+// System notes like "Alex joined the chat"
+socket.on("system message", function (text) {
+  addSystemMessage(text);
+});
 
-  // Build one message bubble in the page
+// Update the Online list whenever the server sends it
+socket.on("user list", function (names) {
+  if (!Array.isArray(names) || names.length === 0) {
+    onlineListEl.textContent = "Nobody online yet";
+    return;
+  }
+  onlineListEl.textContent = names.join(", ");
+});
+
+function addMessage(name, text) {
+  clearEmptyState();
+
   const messageEl = document.createElement("article");
   messageEl.className = "message";
 
@@ -64,6 +108,23 @@ function addMessage(name, text) {
   messageEl.appendChild(textEl);
   messagesEl.appendChild(messageEl);
 
-  // Scroll so the newest message is visible
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addSystemMessage(text) {
+  clearEmptyState();
+
+  const messageEl = document.createElement("article");
+  messageEl.className = "message system";
+  messageEl.textContent = text;
+  messagesEl.appendChild(messageEl);
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function clearEmptyState() {
+  const emptyState = messagesEl.querySelector(".empty-state");
+  if (emptyState) {
+    emptyState.remove();
+  }
 }
