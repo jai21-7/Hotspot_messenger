@@ -9,12 +9,19 @@ chatForm.addEventListener("submit", function (event) {
   // Stop the browser from reloading the page (default form behavior)
   event.preventDefault();
 
-  const name = displayNameInput.value.trim() || "Anonymous";
+  const name = displayNameInput.value.trim();
   const text = messageInput.value.trim();
 
-  // For now, still allow empty checks in the next small commit;
-  // ignore blank messages so we don't add empty bubbles
+  // Name is required so others know who wrote the message
+  if (!name) {
+    displayNameInput.focus();
+    alert("Please enter your name first.");
+    return;
+  }
+
+  // Don't add empty bubbles
   if (!text) {
+    messageInput.focus();
     return;
   }
 
