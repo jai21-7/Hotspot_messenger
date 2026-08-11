@@ -157,3 +157,22 @@ body {
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
+
+/* Larger tap targets and safe areas on phones */
+@media (max-width: 480px) {
+  .app {
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .composer input,
+  .name-section input,
+  .composer button {
+    min-height: 48px;
+    font-size: 1.05rem;
+  }
+
+  .composer {
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+}
