@@ -67,7 +67,11 @@ io.on("connection", (socket) => {
 
     // Send the message to EVERY connected browser (including the sender)
     // Use the server-known name so clients can't fake another identity easily
-    io.emit("chat message", { name, text });
+    io.emit("chat message", {
+      name,
+      text,
+      time: new Date().toISOString(),
+    });
   });
 
   socket.on("disconnect", () => {

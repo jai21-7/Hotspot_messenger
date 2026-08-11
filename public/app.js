@@ -73,7 +73,7 @@ chatForm.addEventListener("submit", function (event) {
 
 // When the server sends a chat message, show it on the page
 socket.on("chat message", function (data) {
-  addMessage(data.name, data.text);
+  addMessage(data.name, data.text, data.time);
 });
 
 // System notes like "Alex joined the chat"
@@ -90,21 +90,40 @@ socket.on("user list", function (names) {
   onlineListEl.textContent = names.join(", ");
 });
 
-function addMessage(name, text) {
+function formatTime(isoString) {
+  try {
+    const date = isoString ? new Date(isoString) : new Date();
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch (error) {
+    return "";
+  }
+}
+
+function addMessage(name, text, time) {
   clearEmptyState();
 
   const messageEl = document.createElement("article");
   messageEl.className = "message";
 
+  const metaEl = document.createElement("div");
+  metaEl.className = "meta";
+
   const authorEl = document.createElement("span");
   authorEl.className = "author";
   authorEl.textContent = name;
+
+  const timeEl = document.createElement("time");
+  timeEl.className = "time";
+  timeEl.textContent = formatTime(time);
+
+  metaEl.appendChild(authorEl);
+  metaEl.appendChild(timeEl);
 
   const textEl = document.createElement("p");
   textEl.className = "text";
   textEl.textContent = text;
 
-  messageEl.appendChild(authorEl);
+  messageEl.appendChild(metaEl);
   messageEl.appendChild(textEl);
   messagesEl.appendChild(messageEl);
 
