@@ -4,11 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hotspot Messenger</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main>
-      <h1>Hotspot Messenger</h1>
-      <p>It works! This page is served from your local network.</p>
-    </main>
+    <div class="app">
+      <header class="app-header">
+        <h1>Hotspot Messenger</h1>
+        <p class="tagline">Chat on the same Wi‑Fi — no mobile data needed</p>
+      </header>
+
+      <section class="name-section" aria-label="Your display name">
+        <label for="display-name">Your name</label>
+        <input
+          id="display-name"
+          type="text"
+          maxlength="24"
+          placeholder="Enter your name"
+          autocomplete="nickname"
+        />
+      </section>
+
+      <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
+        <p class="empty-state">No messages yet. Say hello!</p>
+      </section>
+
+      <form class="composer" id="chat-form" autocomplete="off">
+        <label class="sr-only" for="message-input">Message</label>
+        <input
+          id="message-input"
+          type="text"
+          placeholder="Type a message..."
+          maxlength="500"
+        />
+        <button type="submit" id="send-button">Send</button>
+      </form>
+    </div>
   </body>
 </html>
