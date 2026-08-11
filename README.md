@@ -11,9 +11,9 @@ A simple group chat website that works on a **Wi‑Fi hotspot / local network** 
 
 ## Status
 
-**Step 4 done:** Client JavaScript shows your messages on this device (local only).
+**Step 5 done:** Socket.io realtime group chat — messages are shared with everyone on the same server.
 
-Next: Socket.io live messaging so other phones see your messages too (Step 5).
+Next: usernames + online presence (Step 6), then hotspot testing polish (Step 7).
 
 ## Requirements
 
