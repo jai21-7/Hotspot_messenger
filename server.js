@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const os = require("os");
 const path = require("path");
 const { Server } = require("socket.io");
 
@@ -15,8 +16,35 @@ function getOnlineNames() {
   return Array.from(users.values());
 }
 
+// Find local network IPs so phones can open the chat
+function getLanAddresses() {
+  const nets = os.networkInterfaces();
+  const results = [];
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      // Skip internal (localhost) and non-IPv4 addresses
+      const isIPv4 = net.family === "IPv4" || net.family === 4;
+      if (isIPv4 && !net.internal) {
+        results.push(net.address);
+      }
+    }
+  }
+
+  return results;
+}
+
 // Serve files from the "public" folder (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, "public")));
+
+// Small API so the page can show "open this URL on your phone"
+app.get("/api/join-info", (req, res) => {
+  const addresses = getLanAddresses();
+  res.json({
+    port: PORT,
+    urls: addresses.map((ip) => `http://${ip}:${PORT}`),
+  });
+});
 
 // When a browser connects, we get a socket for that user
 io.on("connection", (socket) => {
@@ -88,5 +116,14 @@ io.on("connection", (socket) => {
 // Listen on 0.0.0.0 so phones on the same hotspot can connect
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Hotspot Messenger running at http://localhost:${PORT}`);
-  console.log("On another device, open http://<this-computer-ip>:3000");
+
+  const addresses = getLanAddresses();
+  if (addresses.length === 0) {
+    console.log("No LAN IP found yet. Connect to Wi‑Fi/hotspot, then restart.");
+  } else {
+    console.log("On another device, open:");
+    for (const ip of addresses) {
+      console.log(`  http://${ip}:${PORT}`);
+    }
+  }
 });

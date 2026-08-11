@@ -10,8 +10,30 @@ const joinHint = document.getElementById("join-hint");
 const onlineListEl = document.getElementById("online-list");
 const messagesEl = document.getElementById("messages");
 const sendButton = document.getElementById("send-button");
+const joinUrlEl = document.getElementById("join-url");
 
 let hasJoined = false;
+
+// Show a link friends can open on the same hotspot
+async function loadJoinInfo() {
+  try {
+    const response = await fetch("/api/join-info");
+    const data = await response.json();
+
+    if (!data.urls || data.urls.length === 0) {
+      joinUrlEl.textContent =
+        "No hotspot/Wi‑Fi IP found. Connect to a network, restart the server, then refresh.";
+      return;
+    }
+
+    joinUrlEl.textContent = `Friends open: ${data.urls.join("  |  ")}`;
+  } catch (error) {
+    joinUrlEl.textContent =
+      "Could not load join link. Use the host IP from the terminal.";
+  }
+}
+
+loadJoinInfo();
 
 function joinChat() {
   const name = displayNameInput.value.trim();
