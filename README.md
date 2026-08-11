@@ -11,9 +11,9 @@ A simple group chat website that works on a **Wi‑Fi hotspot / local network** 
 
 ## Status
 
-**Step 5 done:** Socket.io realtime group chat — messages are shared with everyone on the same server.
+**Step 6 done:** Join with a username, see who is online, and get join/leave notices.
 
-Next: usernames + online presence (Step 6), then hotspot testing polish (Step 7).
+Next: hotspot testing guide + UX polish (Step 7).
 
 ## Requirements
 
