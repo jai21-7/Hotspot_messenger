@@ -1,0 +1,159 @@
+:root {
+  --bg: #e8eef2;
+  --surface: #ffffff;
+  --ink: #1a2332;
+  --muted: #5c6b7a;
+  --accent: #0f6e56;
+  --accent-hover: #0b5744;
+  --border: #cfd8e0;
+  --bubble: #f0f4f7;
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(26, 35, 50, 0.08);
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top, #d9e8e2 0%, transparent 55%),
+    var(--bg);
+  color: var(--ink);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.app-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.tagline {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.name-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: #f7fafb;
+}
+
+.name-section label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.name-section input,
+.composer input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.name-section input:focus,
+.composer input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: linear-gradient(180deg, #fbfcfd, #f3f6f8);
+}
+
+.empty-state {
+  margin: auto;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+/* Message bubbles — used in Step 4 when JS adds messages */
+.message {
+  max-width: 85%;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: var(--bubble);
+  border: 1px solid var(--border);
+}
+
+.message .author {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.2rem;
+}
+
+.message .text {
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.composer {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.composer button {
+  flex-shrink: 0;
+  padding: 0.75rem 1.1rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.composer button:hover {
+  background: var(--accent-hover);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
