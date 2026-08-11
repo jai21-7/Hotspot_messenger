@@ -1,3 +1,6 @@
+// Connect to the Socket.io server (same computer/hotspot host)
+const socket = io();
+
 // Find the important pieces of the page
 const chatForm = document.getElementById("chat-form");
 const messageInput = document.getElementById("message-input");
@@ -19,21 +22,27 @@ chatForm.addEventListener("submit", function (event) {
     return;
   }
 
-  // Don't add empty bubbles
+  // Don't send empty messages
   if (!text) {
     messageInput.focus();
     return;
   }
 
-  addMessage(name, text);
+  // Send the message to the server (server will broadcast to everyone)
+  socket.emit("chat message", { name, text });
 
   // Clear the box and focus it again for the next message
   messageInput.value = "";
   messageInput.focus();
 });
 
+// When the server sends a chat message, show it on the page
+socket.on("chat message", function (data) {
+  addMessage(data.name, data.text);
+});
+
 function addMessage(name, text) {
-  // Remove the "No messages yet" hint the first time we send
+  // Remove the "No messages yet" hint the first time we get a message
   const emptyState = messagesEl.querySelector(".empty-state");
   if (emptyState) {
     emptyState.remove();
