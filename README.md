@@ -11,9 +11,9 @@ A simple group chat website that works on a **Wi‑Fi hotspot / local network** 
 
 ## Status
 
-**Step 3 done:** Chat page layout (name field, messages area, send form) with CSS.
+**Step 4 done:** Client JavaScript shows your messages on this device (local only).
 
-Next: client JavaScript (Step 4), then live messaging with Socket.io (Step 5).
+Next: Socket.io live messaging so other phones see your messages too (Step 5).
 
 ## Requirements
 
