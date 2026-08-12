@@ -484,7 +484,83 @@ body.joined .join-hint {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.online-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ── Group / Direct tabs ── */
+.chat-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-mode {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chat-mode:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat-mode.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat-mode:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── DM bar ── */
+.dm-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 1.25rem;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--chip-border);
+}
+
+.dm-back {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--chip-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dm-label {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.dm-label strong {
+  color: var(--accent);
 }
 
 .online-title {
@@ -531,14 +607,37 @@ body.joined .join-hint {
   border: 1px solid var(--border);
   font-size: 0.82rem;
   font-weight: 500;
+  font-family: inherit;
   color: var(--ink);
+  cursor: pointer;
   animation: chipIn 0.25s ease;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.user-chip:not(:disabled):hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 .user-chip.you {
   background: var(--accent-soft);
   border-color: var(--chip-border);
   color: var(--accent);
+  cursor: default;
+}
+
+.user-chip.dm-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.user-chip.unread::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: 0.15rem;
 }
 
 .user-chip .avatar {
@@ -627,6 +726,29 @@ body.joined .join-hint {
   border-color: transparent;
   color: #fff;
   border-bottom-right-radius: 4px;
+}
+
+.message.dm {
+  border-style: dashed;
+  border-color: var(--chip-border);
+  position: relative;
+}
+
+.message.dm.own {
+  border-style: solid;
+  border-color: transparent;
+}
+
+.message .dm-lock {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  font-size: 0.65rem;
+  opacity: 0.45;
+}
+
+.message.own .dm-lock {
+  opacity: 0.55;
 }
 
 .message:not(.own):not(.system) {
