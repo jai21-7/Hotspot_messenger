@@ -4,38 +4,64 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hotspot Messenger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app">
       <header class="app-header">
-        <h1>Hotspot Messenger</h1>
-        <p class="tagline">Chat on the same Wi‑Fi — no mobile data needed</p>
-        <p class="join-url" id="join-url">Loading join link…</p>
+        <div class="header-top">
+          <div class="brand">
+            <span class="brand-icon" aria-hidden="true">📡</span>
+            <div>
+              <h1>Hotspot Messenger</h1>
+              <p class="tagline">Local chat · no mobile data</p>
+            </div>
+          </div>
+          <span class="live-badge" title="Realtime on your network">Live</span>
+        </div>
+        <div class="join-url-card" id="join-url-card">
+          <span class="join-url-label">Share with friends</span>
+          <p class="join-url" id="join-url">Loading join link…</p>
+        </div>
       </header>
 
       <section class="name-section" aria-label="Your display name">
-        <label for="display-name">Your name</label>
+        <label for="display-name">Display name</label>
         <div class="name-row">
           <input
             id="display-name"
             type="text"
             maxlength="24"
-            placeholder="Enter your name"
+            placeholder="e.g. Jai"
             autocomplete="nickname"
           />
           <button type="button" id="join-button">Join</button>
         </div>
-        <p class="join-hint" id="join-hint">Enter a name and tap Join to chat.</p>
+        <p class="join-hint" id="join-hint">Enter a name and tap Join to start chatting.</p>
       </section>
 
       <section class="online-section" aria-label="Online users">
-        <h2 class="online-title">Online</h2>
-        <p class="online-list" id="online-list">Nobody online yet</p>
+        <div class="online-header">
+          <h2 class="online-title">Online</h2>
+          <span class="online-count" id="online-count">0</span>
+        </div>
+        <div class="online-list" id="online-list">
+          <span class="online-empty">Nobody online yet</span>
+        </div>
       </section>
 
       <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
-        <p class="empty-state">No messages yet. Join and say hello!</p>
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">💬</span>
+          <p>No messages yet</p>
+          <span class="empty-sub">Join the chat and say hello!</span>
+        </div>
       </section>
 
       <form class="composer" id="chat-form" autocomplete="off">
@@ -47,10 +73,12 @@
           maxlength="500"
           disabled
         />
-        <button type="submit" id="send-button" disabled>Send</button>
+        <button type="submit" id="send-button" disabled aria-label="Send message">
+          <span class="send-label">Send</span>
+          <span class="send-icon" aria-hidden="true">➤</span>
+        </button>
       </form>
     </div>
-    <!-- Socket.io client library (served automatically by the server) -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
   </body>
