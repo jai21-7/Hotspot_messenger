@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div class="page-backdrop" aria-hidden="true"></div>
     <div class="app">
       <header class="app-header">
         <div class="header-top">
@@ -23,8 +24,56 @@
               <p class="tagline">Local chat · no mobile data</p>
             </div>
           </div>
-          <span class="live-badge" title="Realtime on your network">Live</span>
+          <div class="header-actions">
+            <button
+              type="button"
+              id="theme-toggle"
+              class="icon-btn"
+              aria-expanded="false"
+              aria-controls="theme-panel"
+              title="Appearance settings"
+            >
+              🎨
+            </button>
+            <span class="live-badge" title="Realtime on your network">Live</span>
+          </div>
         </div>
+
+        <section id="theme-panel" class="theme-panel" hidden>
+          <h2 class="theme-panel-title">Appearance</h2>
+
+          <div class="theme-group">
+            <span class="theme-label">Mode</span>
+            <div class="theme-options" role="group" aria-label="Light or dark mode">
+              <button type="button" class="theme-option" data-setting="mode" data-value="light">☀️ Light</button>
+              <button type="button" class="theme-option" data-setting="mode" data-value="dark">🌙 Dark</button>
+            </div>
+          </div>
+
+          <div class="theme-group">
+            <span class="theme-label">Color theme</span>
+            <div class="theme-swatches" role="group" aria-label="Color theme">
+              <button type="button" class="swatch swatch-teal" data-setting="theme" data-value="teal" title="Teal"></button>
+              <button type="button" class="swatch swatch-violet" data-setting="theme" data-value="violet" title="Violet"></button>
+              <button type="button" class="swatch swatch-rose" data-setting="theme" data-value="rose" title="Rose"></button>
+              <button type="button" class="swatch swatch-amber" data-setting="theme" data-value="amber" title="Amber"></button>
+              <button type="button" class="swatch swatch-ocean" data-setting="theme" data-value="ocean" title="Ocean"></button>
+            </div>
+          </div>
+
+          <div class="theme-group">
+            <span class="theme-label">Wallpaper</span>
+            <div class="theme-options theme-options-wrap" role="group" aria-label="Wallpaper">
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="none">Plain</button>
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="dots">Dots</button>
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="grid">Grid</button>
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="waves">Waves</button>
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="aurora">Aurora</button>
+              <button type="button" class="theme-option" data-setting="wallpaper" data-value="mesh">Mesh</button>
+            </div>
+          </div>
+        </section>
+
         <div class="join-url-card" id="join-url-card">
           <span class="join-url-label">Share with friends</span>
           <p class="join-url" id="join-url">Loading join link…</p>
@@ -80,6 +129,7 @@
       </form>
     </div>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="themes.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
