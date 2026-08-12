@@ -8,11 +8,21 @@ const displayNameInput = document.getElementById("display-name");
 const joinButton = document.getElementById("join-button");
 const joinHint = document.getElementById("join-hint");
 const onlineListEl = document.getElementById("online-list");
+const onlineCountEl = document.getElementById("online-count");
 const messagesEl = document.getElementById("messages");
 const sendButton = document.getElementById("send-button");
 const joinUrlEl = document.getElementById("join-url");
 
 let hasJoined = false;
+let myName = "";
+
+function getInitials(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 // Show a link friends can open on the same hotspot
 async function loadJoinInfo() {
@@ -22,14 +32,13 @@ async function loadJoinInfo() {
 
     if (!data.urls || data.urls.length === 0) {
       joinUrlEl.textContent =
-        "No hotspot/Wi‑Fi IP found. Connect to a network, restart the server, then refresh.";
+        "Connect to Wi‑Fi/hotspot, restart the server, then refresh.";
       return;
     }
 
-    joinUrlEl.textContent = `Friends open: ${data.urls.join("  |  ")}`;
+    joinUrlEl.textContent = data.urls.join("  ·  ");
   } catch (error) {
-    joinUrlEl.textContent =
-      "Could not load join link. Use the host IP from the terminal.";
+    joinUrlEl.textContent = "Use the host IP shown in the terminal.";
   }
 }
 
@@ -43,22 +52,22 @@ function joinChat() {
     return;
   }
 
-  // Tell the server our display name
+  myName = name;
   socket.emit("join", name);
 
   hasJoined = true;
+  document.body.classList.add("joined");
   displayNameInput.disabled = true;
   joinButton.disabled = true;
   messageInput.disabled = false;
   sendButton.disabled = false;
   messageInput.placeholder = "Type a message...";
-  joinHint.textContent = `Joined as ${name}`;
+  joinHint.textContent = `You're in as ${name}`;
   messageInput.focus();
 }
 
 joinButton.addEventListener("click", joinChat);
 
-// Press Enter in the name box to join
 displayNameInput.addEventListener("keydown", function (event) {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -66,9 +75,7 @@ displayNameInput.addEventListener("keydown", function (event) {
   }
 });
 
-// When the user clicks Send (or presses Enter), run this function
 chatForm.addEventListener("submit", function (event) {
-  // Stop the browser from reloading the page (default form behavior)
   event.preventDefault();
 
   if (!hasJoined) {
@@ -78,39 +85,61 @@ chatForm.addEventListener("submit", function (event) {
   }
 
   const text = messageInput.value.trim();
-
-  // Don't send empty messages
   if (!text) {
     messageInput.focus();
     return;
   }
 
-  // Server already knows our name from the join step
   socket.emit("chat message", { text });
-
-  // Clear the box and focus it again for the next message
   messageInput.value = "";
   messageInput.focus();
 });
 
-// When the server sends a chat message, show it on the page
 socket.on("chat message", function (data) {
   addMessage(data.name, data.text, data.time);
 });
 
-// System notes like "Alex joined the chat"
 socket.on("system message", function (text) {
   addSystemMessage(text);
 });
 
-// Update the Online list whenever the server sends it
 socket.on("user list", function (names) {
+  renderOnlineList(names);
+});
+
+function renderOnlineList(names) {
+  onlineListEl.innerHTML = "";
+
   if (!Array.isArray(names) || names.length === 0) {
-    onlineListEl.textContent = "Nobody online yet";
+    onlineCountEl.textContent = "0";
+    const empty = document.createElement("span");
+    empty.className = "online-empty";
+    empty.textContent = "Nobody online yet";
+    onlineListEl.appendChild(empty);
     return;
   }
-  onlineListEl.textContent = names.join(", ");
-});
+
+  onlineCountEl.textContent = String(names.length);
+
+  for (const name of names) {
+    const chip = document.createElement("span");
+    chip.className = "user-chip";
+    if (name === myName) {
+      chip.classList.add("you");
+    }
+
+    const avatar = document.createElement("span");
+    avatar.className = "avatar";
+    avatar.textContent = getInitials(name);
+
+    const label = document.createElement("span");
+    label.textContent = name === myName ? `${name} (you)` : name;
+
+    chip.appendChild(avatar);
+    chip.appendChild(label);
+    onlineListEl.appendChild(chip);
+  }
+}
 
 function formatTime(isoString) {
   try {
@@ -126,13 +155,16 @@ function addMessage(name, text, time) {
 
   const messageEl = document.createElement("article");
   messageEl.className = "message";
+  if (name === myName) {
+    messageEl.classList.add("own");
+  }
 
   const metaEl = document.createElement("div");
   metaEl.className = "meta";
 
   const authorEl = document.createElement("span");
   authorEl.className = "author";
-  authorEl.textContent = name;
+  authorEl.textContent = name === myName ? "You" : name;
 
   const timeEl = document.createElement("time");
   timeEl.className = "time";
