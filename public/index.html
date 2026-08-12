@@ -100,10 +100,25 @@
           <h2 class="online-title">Online</h2>
           <span class="online-count" id="online-count">0</span>
         </div>
+        <p class="online-hint">Tap someone to send a private message</p>
         <div class="online-list" id="online-list">
           <span class="online-empty">Nobody online yet</span>
         </div>
       </section>
+
+      <div class="chat-toolbar">
+        <button type="button" id="mode-group" class="chat-mode active" aria-pressed="true">
+          Group
+        </button>
+        <button type="button" id="mode-dm" class="chat-mode" aria-pressed="false" disabled>
+          Direct
+        </button>
+      </div>
+
+      <div id="dm-bar" class="dm-bar" hidden>
+        <button type="button" id="dm-back" class="dm-back">← Group</button>
+        <span class="dm-label">Private with <strong id="dm-partner"></strong></span>
+      </div>
 
       <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
         <div class="empty-state">

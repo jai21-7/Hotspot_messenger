@@ -1,7 +1,6 @@
 // Connect to the Socket.io server (same computer/hotspot host)
 const socket = io();
 
-// Find the important pieces of the page
 const chatForm = document.getElementById("chat-form");
 const messageInput = document.getElementById("message-input");
 const displayNameInput = document.getElementById("display-name");
@@ -12,9 +11,21 @@ const onlineCountEl = document.getElementById("online-count");
 const messagesEl = document.getElementById("messages");
 const sendButton = document.getElementById("send-button");
 const joinUrlEl = document.getElementById("join-url");
+const modeGroupBtn = document.getElementById("mode-group");
+const modeDmBtn = document.getElementById("mode-dm");
+const dmBar = document.getElementById("dm-bar");
+const dmBackBtn = document.getElementById("dm-back");
+const dmPartnerEl = document.getElementById("dm-partner");
 
 let hasJoined = false;
 let myName = "";
+let chatMode = "group"; // "group" | "dm"
+let activeDmPartner = null;
+let lastDmPartner = null;
+
+const groupMessages = [];
+const dmThreads = new Map(); // partnerName -> message[]
+const unreadDm = new Set();
 
 function getInitials(name) {
   const parts = name.trim().split(/\s+/);
@@ -24,7 +35,13 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-// Show a link friends can open on the same hotspot
+function getDmThread(partner) {
+  if (!dmThreads.has(partner)) {
+    dmThreads.set(partner, []);
+  }
+  return dmThreads.get(partner);
+}
+
 async function loadJoinInfo() {
   try {
     const response = await fetch("/api/join-info");
@@ -75,6 +92,66 @@ displayNameInput.addEventListener("keydown", function (event) {
   }
 });
 
+function setChatMode(mode, partner) {
+  chatMode = mode;
+
+  if (mode === "dm" && partner) {
+    lastDmPartner = partner;
+    activeDmPartner = partner;
+  } else if (mode === "group") {
+    activeDmPartner = null;
+  }
+
+  modeGroupBtn.classList.toggle("active", mode === "group");
+  modeGroupBtn.setAttribute("aria-pressed", mode === "group" ? "true" : "false");
+  modeDmBtn.classList.toggle("active", mode === "dm");
+  modeDmBtn.setAttribute("aria-pressed", mode === "dm" ? "true" : "false");
+  modeDmBtn.disabled = !lastDmPartner;
+
+  if (mode === "dm" && activeDmPartner) {
+    dmBar.hidden = false;
+    dmPartnerEl.textContent = activeDmPartner;
+    modeDmBtn.textContent = `Direct · ${activeDmPartner}`;
+    unreadDm.delete(activeDmPartner);
+    messageInput.placeholder = `Private message to ${activeDmPartner}...`;
+  } else {
+    dmBar.hidden = true;
+    modeDmBtn.textContent = lastDmPartner ? `Direct · ${lastDmPartner}` : "Direct";
+    messageInput.placeholder = "Type a message...";
+  }
+
+  renderOnlineList(lastOnlineNames);
+  renderCurrentView();
+}
+
+function openDm(partner) {
+  if (!hasJoined) {
+    alert("Join with a name first.");
+    return;
+  }
+  if (partner === myName) {
+    return;
+  }
+  setChatMode("dm", partner);
+  messageInput.focus();
+}
+
+modeGroupBtn.addEventListener("click", function () {
+  setChatMode("group");
+  messageInput.focus();
+});
+
+dmBackBtn.addEventListener("click", function () {
+  setChatMode("group");
+  messageInput.focus();
+});
+
+modeDmBtn.addEventListener("click", function () {
+  if (lastDmPartner) {
+    openDm(lastDmPartner);
+  }
+});
+
 chatForm.addEventListener("submit", function (event) {
   event.preventDefault();
 
@@ -90,20 +167,50 @@ chatForm.addEventListener("submit", function (event) {
     return;
   }
 
-  socket.emit("chat message", { text });
+  if (chatMode === "dm" && activeDmPartner) {
+    socket.emit("dm message", { to: activeDmPartner, text });
+  } else {
+    socket.emit("chat message", { text });
+  }
+
   messageInput.value = "";
   messageInput.focus();
 });
 
 socket.on("chat message", function (data) {
-  addMessage(data.name, data.text, data.time);
+  groupMessages.push({ type: "chat", ...data });
+  if (chatMode === "group") {
+    renderCurrentView();
+  }
+});
+
+socket.on("dm message", function (data) {
+  const partner = data.from === myName ? data.to : data.from;
+  getDmThread(partner).push({ type: "dm", ...data });
+
+  if (chatMode === "dm" && activeDmPartner === partner) {
+    renderCurrentView();
+  } else if (data.from !== myName) {
+    unreadDm.add(partner);
+    renderOnlineList(lastOnlineNames);
+  }
+});
+
+socket.on("dm error", function (data) {
+  alert(data.message || "Could not send private message.");
 });
 
 socket.on("system message", function (text) {
-  addSystemMessage(text);
+  groupMessages.push({ type: "system", text });
+  if (chatMode === "group") {
+    renderCurrentView();
+  }
 });
 
+let lastOnlineNames = [];
+
 socket.on("user list", function (names) {
+  lastOnlineNames = names;
   renderOnlineList(names);
 });
 
@@ -122,10 +229,22 @@ function renderOnlineList(names) {
   onlineCountEl.textContent = String(names.length);
 
   for (const name of names) {
-    const chip = document.createElement("span");
+    const chip = document.createElement("button");
+    chip.type = "button";
     chip.className = "user-chip";
     if (name === myName) {
       chip.classList.add("you");
+      chip.disabled = true;
+    } else {
+      chip.addEventListener("click", function () {
+        openDm(name);
+      });
+    }
+    if (chatMode === "dm" && name === activeDmPartner) {
+      chip.classList.add("dm-active");
+    }
+    if (unreadDm.has(name)) {
+      chip.classList.add("unread");
     }
 
     const avatar = document.createElement("span");
@@ -150,12 +269,49 @@ function formatTime(isoString) {
   }
 }
 
-function addMessage(name, text, time) {
-  clearEmptyState();
+function renderCurrentView() {
+  messagesEl.innerHTML = "";
 
+  if (chatMode === "dm" && activeDmPartner) {
+    const thread = getDmThread(activeDmPartner);
+    if (thread.length === 0) {
+      messagesEl.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">🔒</span>
+          <p>Private chat with ${activeDmPartner}</p>
+          <span class="empty-sub">Only you two can see messages here.</span>
+        </div>`;
+      return;
+    }
+    for (const msg of thread) {
+      messagesEl.appendChild(buildDmMessageEl(msg));
+    }
+  } else {
+    if (groupMessages.length === 0) {
+      messagesEl.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">💬</span>
+          <p>No messages yet</p>
+          <span class="empty-sub">Join the chat and say hello!</span>
+        </div>`;
+      return;
+    }
+    for (const msg of groupMessages) {
+      if (msg.type === "system") {
+        messagesEl.appendChild(buildSystemMessageEl(msg.text));
+      } else {
+        messagesEl.appendChild(buildChatMessageEl(msg));
+      }
+    }
+  }
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function buildChatMessageEl(msg) {
   const messageEl = document.createElement("article");
   messageEl.className = "message";
-  if (name === myName) {
+  if (msg.name === myName) {
     messageEl.classList.add("own");
   }
 
@@ -164,40 +320,64 @@ function addMessage(name, text, time) {
 
   const authorEl = document.createElement("span");
   authorEl.className = "author";
-  authorEl.textContent = name === myName ? "You" : name;
+  authorEl.textContent = msg.name === myName ? "You" : msg.name;
 
   const timeEl = document.createElement("time");
   timeEl.className = "time";
-  timeEl.textContent = formatTime(time);
+  timeEl.textContent = formatTime(msg.time);
 
   metaEl.appendChild(authorEl);
   metaEl.appendChild(timeEl);
 
   const textEl = document.createElement("p");
   textEl.className = "text";
-  textEl.textContent = text;
+  textEl.textContent = msg.text;
 
   messageEl.appendChild(metaEl);
   messageEl.appendChild(textEl);
-  messagesEl.appendChild(messageEl);
-
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return messageEl;
 }
 
-function addSystemMessage(text) {
-  clearEmptyState();
+function buildDmMessageEl(msg) {
+  const isOwn = msg.from === myName;
+  const messageEl = document.createElement("article");
+  messageEl.className = "message dm";
+  if (isOwn) {
+    messageEl.classList.add("own");
+  }
 
+  const metaEl = document.createElement("div");
+  metaEl.className = "meta";
+
+  const authorEl = document.createElement("span");
+  authorEl.className = "author";
+  authorEl.textContent = isOwn ? "You" : msg.from;
+
+  const timeEl = document.createElement("time");
+  timeEl.className = "time";
+  timeEl.textContent = formatTime(msg.time);
+
+  const lockEl = document.createElement("span");
+  lockEl.className = "dm-lock";
+  lockEl.textContent = "🔒";
+  lockEl.title = "Private message";
+
+  metaEl.appendChild(authorEl);
+  metaEl.appendChild(timeEl);
+
+  const textEl = document.createElement("p");
+  textEl.className = "text";
+  textEl.textContent = msg.text;
+
+  messageEl.appendChild(metaEl);
+  messageEl.appendChild(textEl);
+  messageEl.appendChild(lockEl);
+  return messageEl;
+}
+
+function buildSystemMessageEl(text) {
   const messageEl = document.createElement("article");
   messageEl.className = "message system";
   messageEl.textContent = text;
-  messagesEl.appendChild(messageEl);
-
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-function clearEmptyState() {
-  const emptyState = messagesEl.querySelector(".empty-state");
-  if (emptyState) {
-    emptyState.remove();
-  }
+  return messageEl;
 }
