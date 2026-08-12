@@ -16,6 +16,17 @@ function getOnlineNames() {
   return Array.from(users.values());
 }
 
+// Find every socket connected with a given display name
+function getSocketIdsByName(name) {
+  const ids = [];
+  for (const [socketId, userName] of users) {
+    if (userName === name) {
+      ids.push(socketId);
+    }
+  }
+  return ids;
+}
+
 // Find local network IPs so phones can open the chat
 function getLanAddresses() {
   const nets = os.networkInterfaces();
@@ -100,6 +111,50 @@ io.on("connection", (socket) => {
       text,
       time: new Date().toISOString(),
     });
+  });
+
+  // Private message to one online user
+  socket.on("dm message", (data) => {
+    const from = users.get(socket.id);
+    if (!from) {
+      return;
+    }
+
+    if (!data || typeof data.to !== "string" || typeof data.text !== "string") {
+      return;
+    }
+
+    const to = data.to.trim().slice(0, 24);
+    const text = data.text.trim().slice(0, 500);
+    if (!to || !text) {
+      return;
+    }
+
+    if (to === from) {
+      socket.emit("dm error", { message: "You cannot message yourself." });
+      return;
+    }
+
+    const recipientIds = getSocketIdsByName(to);
+    if (recipientIds.length === 0) {
+      socket.emit("dm error", { message: `${to} is not online.` });
+      return;
+    }
+
+    const payload = {
+      from,
+      to,
+      text,
+      time: new Date().toISOString(),
+    };
+
+    // Deliver to sender and recipient only
+    socket.emit("dm message", payload);
+    for (const id of recipientIds) {
+      if (id !== socket.id) {
+        io.to(id).emit("dm message", payload);
+      }
+    }
   });
 
   socket.on("disconnect", () => {
