@@ -157,12 +157,35 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Typing indicator for group or private chat
+  socket.on("typing", (data) => {
+    const name = users.get(socket.id);
+    if (!name) {
+      return;
+    }
+
+    const isTyping = Boolean(data && data.typing);
+    const to = data && typeof data.to === "string" ? data.to.trim().slice(0, 24) : null;
+
+    if (to) {
+      const recipientIds = getSocketIdsByName(to);
+      for (const id of recipientIds) {
+        io.to(id).emit("typing", { name, typing: isTyping, dm: true });
+      }
+      return;
+    }
+
+    // Group typing — tell everyone else
+    socket.broadcast.emit("typing", { name, typing: isTyping });
+  });
+
   socket.on("disconnect", () => {
     const name = users.get(socket.id);
     if (name) {
       users.delete(socket.id);
       io.emit("user list", getOnlineNames());
       io.emit("system message", `${name} left the chat`);
+      socket.broadcast.emit("typing", { name, typing: false });
     }
     console.log("A user disconnected:", socket.id);
   });
