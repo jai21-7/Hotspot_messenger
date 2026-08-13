@@ -366,13 +366,36 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
+.join-url-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .join-url-label {
-  display: block;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
+}
+
+.copy-join-btn {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.copy-join-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .join-url {
@@ -428,7 +451,7 @@ body {
 }
 
 #join-button,
-.composer button {
+#send-button {
   flex-shrink: 0;
   padding: 0.78rem 1.1rem;
   border: none;
@@ -444,18 +467,18 @@ body {
 }
 
 #join-button:hover,
-.composer button:hover:not(:disabled) {
+#send-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px var(--accent-glow);
 }
 
 #join-button:active,
-.composer button:active:not(:disabled) {
+#send-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
 #join-button:disabled,
-.composer button:disabled {
+#send-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
@@ -805,12 +828,36 @@ body.joined .join-hint {
 }
 
 /* ── Composer ── */
+.typing-indicator {
+  margin: 0;
+  padding: 0.35rem 1.25rem 0;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--accent);
+  background: var(--surface);
+}
+
 .composer {
   display: flex;
-  gap: 0.55rem;
-  padding: 0.85rem 1.1rem 1rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 1.1rem 1rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
+.composer-input-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .composer input:disabled {
@@ -818,7 +865,72 @@ body.joined .join-hint {
   cursor: not-allowed;
 }
 
-.composer button {
+.char-counter {
+  align-self: flex-end;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.char-counter.near-limit {
+  color: #d97706;
+}
+
+.char-counter.at-limit {
+  color: #e11d48;
+  font-weight: 600;
+}
+
+.composer-icon-btn {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.composer-icon-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.composer-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.emoji-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+
+.emoji-btn:hover {
+  background: var(--accent-soft);
+  transform: scale(1.15);
+}
+
+#send-button {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -859,10 +971,16 @@ body.joined .join-hint {
 
   .composer input,
   .name-section input,
-  .composer button,
-  #join-button {
+  #send-button,
+  #join-button,
+  .composer-icon-btn {
     min-height: 48px;
     font-size: 1rem;
+  }
+
+  .composer-icon-btn {
+    width: 48px;
+    height: 48px;
   }
 
   .composer {
@@ -873,7 +991,7 @@ body.joined .join-hint {
     display: none;
   }
 
-  .composer button {
+  #send-button {
     padding: 0.78rem 1rem;
   }
 }

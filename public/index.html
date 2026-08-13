@@ -75,7 +75,12 @@
         </section>
 
         <div class="join-url-card" id="join-url-card">
-          <span class="join-url-label">Share with friends</span>
+          <div class="join-url-row">
+            <span class="join-url-label">Share with friends</span>
+            <button type="button" id="copy-join-btn" class="copy-join-btn" title="Copy join link">
+              Copy
+            </button>
+          </div>
           <p class="join-url" id="join-url">Loading join link…</p>
         </div>
       </header>
@@ -128,19 +133,46 @@
         </div>
       </section>
 
+      <p id="typing-indicator" class="typing-indicator" hidden></p>
+
       <form class="composer" id="chat-form" autocomplete="off">
-        <label class="sr-only" for="message-input">Message</label>
-        <input
-          id="message-input"
-          type="text"
-          placeholder="Join with a name to chat..."
-          maxlength="500"
-          disabled
-        />
-        <button type="submit" id="send-button" disabled aria-label="Send message">
-          <span class="send-label">Send</span>
-          <span class="send-icon" aria-hidden="true">➤</span>
-        </button>
+        <div id="emoji-picker" class="emoji-picker" hidden>
+          <button type="button" class="emoji-btn" data-emoji="😀">😀</button>
+          <button type="button" class="emoji-btn" data-emoji="😂">😂</button>
+          <button type="button" class="emoji-btn" data-emoji="😊">😊</button>
+          <button type="button" class="emoji-btn" data-emoji="❤️">❤️</button>
+          <button type="button" class="emoji-btn" data-emoji="👍">👍</button>
+          <button type="button" class="emoji-btn" data-emoji="👋">👋</button>
+          <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
+          <button type="button" class="emoji-btn" data-emoji="✨">✨</button>
+          <button type="button" class="emoji-btn" data-emoji="🎉">🎉</button>
+          <button type="button" class="emoji-btn" data-emoji="💬">💬</button>
+          <button type="button" class="emoji-btn" data-emoji="🤔">🤔</button>
+          <button type="button" class="emoji-btn" data-emoji="😎">😎</button>
+        </div>
+        <div class="composer-row">
+          <button type="button" id="emoji-toggle" class="composer-icon-btn" title="Add emoji" disabled>
+            😀
+          </button>
+          <div class="composer-input-wrap">
+            <label class="sr-only" for="message-input">Message</label>
+            <input
+              id="message-input"
+              type="text"
+              placeholder="Join with a name to chat..."
+              maxlength="500"
+              disabled
+            />
+            <span id="char-counter" class="char-counter">0/500</span>
+          </div>
+          <button type="button" id="sound-toggle" class="composer-icon-btn" title="Sound on new messages" aria-pressed="true">
+            🔊
+          </button>
+          <button type="submit" id="send-button" disabled aria-label="Send message">
+            <span class="send-label">Send</span>
+            <span class="send-icon" aria-hidden="true">➤</span>
+          </button>
+        </div>
       </form>
     </div>
     <script src="/socket.io/socket.io.js"></script>
