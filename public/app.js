@@ -44,24 +44,7 @@ const groupMessages = [];
 const dmThreads = new Map();
 const unreadDm = new Set();
 
-// ── localStorage history ──
-function loadHistory() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}");
-    if (Array.isArray(saved.groupMessages)) {
-      groupMessages.push(...saved.groupMessages.slice(-MAX_GROUP_HISTORY));
-    }
-    if (saved.dmThreads && typeof saved.dmThreads === "object") {
-      for (const [partner, msgs] of Object.entries(saved.dmThreads)) {
-        dmThreads.set(partner, msgs.slice(-MAX_DM_HISTORY));
-      }
-    }
-    renderCurrentView();
-  } catch (error) {
-    // ignore corrupt storage
-  }
-}
-
+// ── localStorage cache (backup); server history loads on join ──
 function saveHistory() {
   const dmObj = {};
   for (const [partner, msgs] of dmThreads) {
@@ -76,7 +59,54 @@ function saveHistory() {
   );
 }
 
-loadHistory();
+function applyGroupHistory(messages) {
+  groupMessages.length = 0;
+  if (!Array.isArray(messages)) {
+    return;
+  }
+  for (const msg of messages) {
+    if (msg.type === "system") {
+      groupMessages.push({ type: "system", text: msg.text });
+    } else {
+      groupMessages.push({
+        type: "chat",
+        name: msg.name,
+        text: msg.text,
+        time: msg.time,
+      });
+    }
+  }
+  saveHistory();
+  if (chatMode === "group") {
+    renderCurrentView();
+  }
+}
+
+function applyDmHistory(threads) {
+  if (!threads || typeof threads !== "object") {
+    return;
+  }
+  for (const [partner, messages] of Object.entries(threads)) {
+    dmThreads.set(
+      partner,
+      messages.map(function (m) {
+        return { type: "dm", from: m.from, to: m.to, text: m.text, time: m.time };
+      })
+    );
+  }
+  saveHistory();
+  if (chatMode === "dm" && activeDmPartner) {
+    renderCurrentView();
+  }
+}
+
+socket.on("chat history", function (data) {
+  applyGroupHistory(data.messages);
+});
+
+socket.on("dm history", function (data) {
+  applyDmHistory(data.threads);
+});
 
 // ── Sound ──
 function playMessageSound() {
