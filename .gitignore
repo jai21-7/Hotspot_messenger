@@ -5,6 +5,9 @@ node_modules/
 .env
 .env.*
 
+# Server message history (local chat data)
+data/
+
 # OS / editor
 .DS_Store
 Thumbs.db

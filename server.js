@@ -3,6 +3,7 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const { Server } = require("socket.io");
+const history = require("./history");
 
 const app = express();
 const server = http.createServer(app);
@@ -34,7 +35,6 @@ function getLanAddresses() {
 
   for (const name of Object.keys(nets)) {
     for (const net of nets[name] || []) {
-      // Skip internal (localhost) and non-IPv4 addresses
       const isIPv4 = net.family === "IPv4" || net.family === 4;
       if (isIPv4 && !net.internal) {
         results.push(net.address);
@@ -45,10 +45,8 @@ function getLanAddresses() {
   return results;
 }
 
-// Serve files from the "public" folder (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Small API so the page can show "open this URL on your phone"
 app.get("/api/join-info", (req, res) => {
   const addresses = getLanAddresses();
   res.json({
@@ -57,14 +55,11 @@ app.get("/api/join-info", (req, res) => {
   });
 });
 
-// When a browser connects, we get a socket for that user
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  // Send the current online list to the new visitor right away
   socket.emit("user list", getOnlineNames());
 
-  // User picks a display name and joins the chat
   socket.on("join", (rawName) => {
     if (typeof rawName !== "string") {
       return;
@@ -75,23 +70,25 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // If they reconnect/rejoin, update their name
     const isNew = !users.has(socket.id);
     users.set(socket.id, name);
 
-    // Tell everyone the updated online list
     io.emit("user list", getOnlineNames());
 
+    // Send stored messages to this user (shared across all devices)
+    socket.emit("chat history", { messages: history.getGroupMessages() });
+    socket.emit("dm history", { threads: history.getDmThreadsForUser(name) });
+
     if (isNew) {
-      io.emit("system message", `${name} joined the chat`);
+      const joinText = `${name} joined the chat`;
+      history.addGroupSystem(joinText);
+      io.emit("system message", joinText);
     }
   });
 
-  // Listen for chat messages from this user
   socket.on("chat message", (data) => {
     const name = users.get(socket.id);
     if (!name) {
-      // Must join with a name before chatting
       return;
     }
 
@@ -104,16 +101,16 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Send the message to EVERY connected browser (including the sender)
-    // Use the server-known name so clients can't fake another identity easily
-    io.emit("chat message", {
+    const payload = {
       name,
       text,
       time: new Date().toISOString(),
-    });
+    };
+
+    history.addGroupChat(payload);
+    io.emit("chat message", payload);
   });
 
-  // Private message to one online user
   socket.on("dm message", (data) => {
     const from = users.get(socket.id);
     if (!from) {
@@ -148,7 +145,8 @@ io.on("connection", (socket) => {
       time: new Date().toISOString(),
     };
 
-    // Deliver to sender and recipient only
+    history.addDmMessage(payload);
+
     socket.emit("dm message", payload);
     for (const id of recipientIds) {
       if (id !== socket.id) {
@@ -157,7 +155,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Typing indicator for group or private chat
   socket.on("typing", (data) => {
     const name = users.get(socket.id);
     if (!name) {
@@ -175,7 +172,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Group typing — tell everyone else
     socket.broadcast.emit("typing", { name, typing: isTyping });
   });
 
@@ -184,14 +180,17 @@ io.on("connection", (socket) => {
     if (name) {
       users.delete(socket.id);
       io.emit("user list", getOnlineNames());
-      io.emit("system message", `${name} left the chat`);
+
+      const leaveText = `${name} left the chat`;
+      history.addGroupSystem(leaveText);
+      io.emit("system message", leaveText);
+
       socket.broadcast.emit("typing", { name, typing: false });
     }
     console.log("A user disconnected:", socket.id);
   });
 });
 
-// Listen on 0.0.0.0 so phones on the same hotspot can connect
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Hotspot Messenger running at http://localhost:${PORT}`);
 
