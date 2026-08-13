@@ -11,22 +11,234 @@ const onlineCountEl = document.getElementById("online-count");
 const messagesEl = document.getElementById("messages");
 const sendButton = document.getElementById("send-button");
 const joinUrlEl = document.getElementById("join-url");
+const copyJoinBtn = document.getElementById("copy-join-btn");
 const modeGroupBtn = document.getElementById("mode-group");
 const modeDmBtn = document.getElementById("mode-dm");
 const dmBar = document.getElementById("dm-bar");
 const dmBackBtn = document.getElementById("dm-back");
 const dmPartnerEl = document.getElementById("dm-partner");
+const charCounterEl = document.getElementById("char-counter");
+const emojiToggle = document.getElementById("emoji-toggle");
+const emojiPicker = document.getElementById("emoji-picker");
+const typingIndicatorEl = document.getElementById("typing-indicator");
+const soundToggle = document.getElementById("sound-toggle");
+
+const MAX_MESSAGE_LENGTH = 500;
+const HISTORY_KEY = "hm-chat-history";
+const SOUND_KEY = "hm-sound-enabled";
+const MAX_GROUP_HISTORY = 200;
+const MAX_DM_HISTORY = 100;
 
 let hasJoined = false;
 let myName = "";
-let chatMode = "group"; // "group" | "dm"
+let chatMode = "group";
 let activeDmPartner = null;
 let lastDmPartner = null;
+let joinUrls = [];
+let soundEnabled = localStorage.getItem(SOUND_KEY) !== "false";
+let typingTimeout = null;
+let typingStopTimeout = null;
+const typingUsers = new Map(); // name -> timeout id
 
 const groupMessages = [];
-const dmThreads = new Map(); // partnerName -> message[]
+const dmThreads = new Map();
 const unreadDm = new Set();
 
+// ── localStorage history ──
+function loadHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}");
+    if (Array.isArray(saved.groupMessages)) {
+      groupMessages.push(...saved.groupMessages.slice(-MAX_GROUP_HISTORY));
+    }
+    if (saved.dmThreads && typeof saved.dmThreads === "object") {
+      for (const [partner, msgs] of Object.entries(saved.dmThreads)) {
+        dmThreads.set(partner, msgs.slice(-MAX_DM_HISTORY));
+      }
+    }
+    renderCurrentView();
+  } catch (error) {
+    // ignore corrupt storage
+  }
+}
+
+function saveHistory() {
+  const dmObj = {};
+  for (const [partner, msgs] of dmThreads) {
+    dmObj[partner] = msgs.slice(-MAX_DM_HISTORY);
+  }
+  localStorage.setItem(
+    HISTORY_KEY,
+    JSON.stringify({
+      groupMessages: groupMessages.slice(-MAX_GROUP_HISTORY),
+      dmThreads: dmObj,
+    })
+  );
+}
+
+loadHistory();
+
+// ── Sound ──
+function playMessageSound() {
+  if (!soundEnabled) {
+    return;
+  }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (error) {
+    // audio not supported
+  }
+}
+
+function updateSoundToggle() {
+  soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+  soundToggle.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+  soundToggle.title = soundEnabled ? "Sound on — click to mute" : "Sound off — click to unmute";
+}
+
+soundToggle.addEventListener("click", function () {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem(SOUND_KEY, String(soundEnabled));
+  updateSoundToggle();
+});
+updateSoundToggle();
+
+// ── Character counter ──
+function updateCharCounter() {
+  const len = messageInput.value.length;
+  charCounterEl.textContent = `${len}/${MAX_MESSAGE_LENGTH}`;
+  charCounterEl.classList.toggle("near-limit", len >= MAX_MESSAGE_LENGTH - 50);
+  charCounterEl.classList.toggle("at-limit", len >= MAX_MESSAGE_LENGTH);
+}
+
+messageInput.addEventListener("input", function () {
+  updateCharCounter();
+  handleTyping();
+});
+updateCharCounter();
+
+// ── Emoji picker ──
+emojiToggle.addEventListener("click", function () {
+  emojiPicker.hidden = !emojiPicker.hidden;
+});
+
+document.querySelectorAll(".emoji-btn").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    messageInput.value += btn.dataset.emoji;
+    messageInput.focus();
+    updateCharCounter();
+    handleTyping();
+  });
+});
+
+document.addEventListener("click", function (event) {
+  if (
+    !emojiPicker.hidden &&
+    !emojiPicker.contains(event.target) &&
+    event.target !== emojiToggle
+  ) {
+    emojiPicker.hidden = true;
+  }
+});
+
+// ── Copy join link ──
+let copyResetTimeout = null;
+
+async function copyJoinLink() {
+  if (joinUrls.length === 0) {
+    alert("No join link available yet. Connect to Wi‑Fi and refresh.");
+    return;
+  }
+  const text = joinUrls[0];
+  try {
+    await navigator.clipboard.writeText(text);
+    copyJoinBtn.textContent = "Copied!";
+    clearTimeout(copyResetTimeout);
+    copyResetTimeout = setTimeout(function () {
+      copyJoinBtn.textContent = "Copy";
+    }, 2000);
+  } catch (error) {
+    prompt("Copy this link:", text);
+  }
+}
+
+copyJoinBtn.addEventListener("click", copyJoinLink);
+
+// ── Typing indicator ──
+function emitTyping(typing) {
+  if (!hasJoined) {
+    return;
+  }
+  const payload = { typing };
+  if (chatMode === "dm" && activeDmPartner) {
+    payload.to = activeDmPartner;
+  }
+  socket.emit("typing", payload);
+}
+
+function handleTyping() {
+  if (!hasJoined) {
+    return;
+  }
+  emitTyping(true);
+  clearTimeout(typingStopTimeout);
+  typingStopTimeout = setTimeout(function () {
+    emitTyping(false);
+  }, 2000);
+}
+
+function showTypingIndicator(name, typing, isDm) {
+  if (isDm) {
+    if (chatMode !== "dm" || !activeDmPartner || name !== activeDmPartner || name === myName) {
+      return;
+    }
+    typingIndicatorEl.textContent = `${name} is typing…`;
+    typingIndicatorEl.hidden = !typing;
+    if (typing) {
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(function () {
+        typingIndicatorEl.hidden = true;
+      }, 3000);
+    }
+    return;
+  }
+
+  if (chatMode !== "group" || name === myName) {
+    return;
+  }
+
+  if (typing) {
+    typingUsers.set(name, true);
+  } else {
+    typingUsers.delete(name);
+  }
+
+  const names = Array.from(typingUsers.keys());
+  if (names.length === 0) {
+    typingIndicatorEl.hidden = true;
+    return;
+  }
+
+  typingIndicatorEl.textContent =
+    names.length === 1 ? `${names[0]} is typing…` : `${names.join(", ")} are typing…`;
+  typingIndicatorEl.hidden = false;
+}
+
+socket.on("typing", function (data) {
+  showTypingIndicator(data.name, data.typing, Boolean(data.dm));
+});
+
+// ── Helpers ──
 function getInitials(name) {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
@@ -48,11 +260,13 @@ async function loadJoinInfo() {
     const data = await response.json();
 
     if (!data.urls || data.urls.length === 0) {
+      joinUrls = [];
       joinUrlEl.textContent =
         "Connect to Wi‑Fi/hotspot, restart the server, then refresh.";
       return;
     }
 
+    joinUrls = data.urls;
     joinUrlEl.textContent = data.urls.join("  ·  ");
   } catch (error) {
     joinUrlEl.textContent = "Use the host IP shown in the terminal.";
@@ -78,6 +292,7 @@ function joinChat() {
   joinButton.disabled = true;
   messageInput.disabled = false;
   sendButton.disabled = false;
+  emojiToggle.disabled = false;
   messageInput.placeholder = "Type a message...";
   joinHint.textContent = `You're in as ${name}`;
   messageInput.focus();
@@ -94,6 +309,8 @@ displayNameInput.addEventListener("keydown", function (event) {
 
 function setChatMode(mode, partner) {
   chatMode = mode;
+  typingIndicatorEl.hidden = true;
+  typingUsers.clear();
 
   if (mode === "dm" && partner) {
     lastDmPartner = partner;
@@ -167,6 +384,9 @@ chatForm.addEventListener("submit", function (event) {
     return;
   }
 
+  emitTyping(false);
+  emojiPicker.hidden = true;
+
   if (chatMode === "dm" && activeDmPartner) {
     socket.emit("dm message", { to: activeDmPartner, text });
   } else {
@@ -174,11 +394,18 @@ chatForm.addEventListener("submit", function (event) {
   }
 
   messageInput.value = "";
+  updateCharCounter();
   messageInput.focus();
 });
 
 socket.on("chat message", function (data) {
   groupMessages.push({ type: "chat", ...data });
+  saveHistory();
+
+  if (data.name !== myName) {
+    playMessageSound();
+  }
+
   if (chatMode === "group") {
     renderCurrentView();
   }
@@ -187,6 +414,11 @@ socket.on("chat message", function (data) {
 socket.on("dm message", function (data) {
   const partner = data.from === myName ? data.to : data.from;
   getDmThread(partner).push({ type: "dm", ...data });
+  saveHistory();
+
+  if (data.from !== myName) {
+    playMessageSound();
+  }
 
   if (chatMode === "dm" && activeDmPartner === partner) {
     renderCurrentView();
@@ -202,6 +434,7 @@ socket.on("dm error", function (data) {
 
 socket.on("system message", function (text) {
   groupMessages.push({ type: "system", text });
+  saveHistory();
   if (chatMode === "group") {
     renderCurrentView();
   }
@@ -357,11 +590,6 @@ function buildDmMessageEl(msg) {
   timeEl.className = "time";
   timeEl.textContent = formatTime(msg.time);
 
-  const lockEl = document.createElement("span");
-  lockEl.className = "dm-lock";
-  lockEl.textContent = "🔒";
-  lockEl.title = "Private message";
-
   metaEl.appendChild(authorEl);
   metaEl.appendChild(timeEl);
 
@@ -371,7 +599,13 @@ function buildDmMessageEl(msg) {
 
   messageEl.appendChild(metaEl);
   messageEl.appendChild(textEl);
+
+  const lockEl = document.createElement("span");
+  lockEl.className = "dm-lock";
+  lockEl.textContent = "🔒";
+  lockEl.title = "Private message";
   messageEl.appendChild(lockEl);
+
   return messageEl;
 }
 
