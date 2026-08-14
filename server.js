@@ -10,14 +10,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
 
-// socket.id -> display name for everyone who has joined
 const users = new Map();
 
 function getOnlineNames() {
   return Array.from(users.values());
 }
 
-// Find every socket connected with a given display name
 function getSocketIdsByName(name) {
   const ids = [];
   for (const [socketId, userName] of users) {
@@ -28,7 +26,6 @@ function getSocketIdsByName(name) {
   return ids;
 }
 
-// Find local network IPs so phones can open the chat
 function getLanAddresses() {
   const nets = os.networkInterfaces();
   const results = [];
@@ -75,7 +72,6 @@ io.on("connection", (socket) => {
 
     io.emit("user list", getOnlineNames());
 
-    // Send stored messages to this user (shared across all devices)
     socket.emit("chat history", { messages: history.getGroupMessages() });
     socket.emit("dm history", { threads: history.getDmThreadsForUser(name) });
 
@@ -88,11 +84,7 @@ io.on("connection", (socket) => {
 
   socket.on("chat message", (data) => {
     const name = users.get(socket.id);
-    if (!name) {
-      return;
-    }
-
-    if (!data || typeof data.text !== "string") {
+    if (!name || !data || typeof data.text !== "string") {
       return;
     }
 
@@ -101,23 +93,24 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const payload = {
+    const entry = history.addGroupChat({
       name,
       text,
       time: new Date().toISOString(),
-    };
+    });
 
-    history.addGroupChat(payload);
-    io.emit("chat message", payload);
+    io.emit("chat message", {
+      id: entry.id,
+      name: entry.name,
+      text: entry.text,
+      time: entry.time,
+      edited: false,
+    });
   });
 
   socket.on("dm message", (data) => {
     const from = users.get(socket.id);
-    if (!from) {
-      return;
-    }
-
-    if (!data || typeof data.to !== "string" || typeof data.text !== "string") {
+    if (!from || !data || typeof data.to !== "string" || typeof data.text !== "string") {
       return;
     }
 
@@ -138,14 +131,21 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const payload = {
+    const entry = history.addDmMessage({
       from,
       to,
       text,
       time: new Date().toISOString(),
-    };
+    });
 
-    history.addDmMessage(payload);
+    const payload = {
+      id: entry.id,
+      from: entry.from,
+      to: entry.to,
+      text: entry.text,
+      time: entry.time,
+      edited: false,
+    };
 
     socket.emit("dm message", payload);
     for (const id of recipientIds) {
@@ -153,6 +153,89 @@ io.on("connection", (socket) => {
         io.to(id).emit("dm message", payload);
       }
     }
+  });
+
+  socket.on("edit message", (data) => {
+    const name = users.get(socket.id);
+    if (!name || !data || typeof data.id !== "string" || typeof data.text !== "string") {
+      return;
+    }
+
+    const text = data.text.trim().slice(0, 500);
+    if (!text) {
+      return;
+    }
+
+    const dmTo = data.dmTo ? data.dmTo.trim().slice(0, 24) : null;
+
+    if (dmTo) {
+      const updated = history.editDmMessage(data.id, name, text);
+      if (!updated) {
+        return;
+      }
+      const payload = {
+        id: updated.id,
+        from: updated.from,
+        to: updated.to,
+        text: updated.text,
+        time: updated.time,
+        edited: true,
+        dm: true,
+      };
+      const recipientIds = getSocketIdsByName(updated.to);
+      socket.emit("message updated", payload);
+      for (const id of recipientIds) {
+        if (id !== socket.id) {
+          io.to(id).emit("message updated", payload);
+        }
+      }
+      return;
+    }
+
+    const updated = history.editGroupMessage(data.id, name, text);
+    if (!updated) {
+      return;
+    }
+
+    io.emit("message updated", {
+      id: updated.id,
+      name: updated.name,
+      text: updated.text,
+      time: updated.time,
+      edited: true,
+    });
+  });
+
+  socket.on("delete message", (data) => {
+    const name = users.get(socket.id);
+    if (!name || !data || typeof data.id !== "string") {
+      return;
+    }
+
+    const dmTo = data.dmTo ? data.dmTo.trim().slice(0, 24) : null;
+
+    if (dmTo) {
+      const removed = history.deleteDmMessage(data.id, name);
+      if (!removed) {
+        return;
+      }
+      const payload = { id: removed.id, dm: true, from: removed.from, to: removed.to };
+      const recipientIds = getSocketIdsByName(removed.to);
+      socket.emit("message deleted", payload);
+      for (const id of recipientIds) {
+        if (id !== socket.id) {
+          io.to(id).emit("message deleted", payload);
+        }
+      }
+      return;
+    }
+
+    const removed = history.deleteGroupMessage(data.id, name);
+    if (!removed) {
+      return;
+    }
+
+    io.emit("message deleted", { id: removed.id });
   });
 
   socket.on("typing", (data) => {
