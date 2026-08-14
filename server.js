@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const os = require("os");
 const path = require("path");
+const QRCode = require("qrcode");
 const { Server } = require("socket.io");
 const history = require("./history");
 
@@ -10,7 +11,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
 
+// socket.id -> display name
 const users = new Map();
+// display name -> avatar emoji
 const userAvatars = new Map();
 
 const AVATAR_OPTIONS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙", "🦄", "🐲", "🎮", "⚡", "🌟"];
@@ -76,6 +79,19 @@ app.get("/api/join-info", (req, res) => {
     urls: addresses.map((ip) => `http://${ip}:${PORT}`),
     avatars: AVATAR_OPTIONS,
   });
+});
+
+app.get("/api/qr", async (req, res) => {
+  const url = typeof req.query.url === "string" ? req.query.url.trim() : "";
+  if (!url || !url.startsWith("http")) {
+    return res.status(400).send("Invalid url");
+  }
+  try {
+    const png = await QRCode.toBuffer(url, { width: 220, margin: 1 });
+    res.type("png").send(png);
+  } catch (error) {
+    res.status(500).send("Could not generate QR code");
+  }
 });
 
 io.on("connection", (socket) => {
