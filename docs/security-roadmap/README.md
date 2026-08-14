@@ -16,7 +16,7 @@ Overlap is allowed at the edges (keep using the home lab while you start Securit
 | Phase | When | Guide |
 | ----- | ---- | ----- |
 | Mindset | Always | [00-mindset-and-legal.md](00-mindset-and-legal.md) |
-| 0 Core literacy | Months 1–4 | [01-phase-0-core-literacy.md](01-phase-0-core-literacy.md) |
+| 0 Core literacy | Months 1–4 | [01-phase-0-core-literacy.md](01-phase-0-core-literacy.md) · **[beginner resources](01-phase-0-resources.md)** |
 | 1 Security foundations | Months 4–7 | [02-phase-1-security-foundations.md](02-phase-1-security-foundations.md) |
 | 2 Defense / SOC / IR | Months 7–11 | [03-phase-2-defense.md](03-phase-2-defense.md) |
 | 3 Authorized pentest labs | Months 11–16 | [04-phase-3-authorized-labs.md](04-phase-3-authorized-labs.md) |

@@ -2,6 +2,8 @@
 
 You cannot skip this. Defense, authorized labs, and AppSec all rest on it.
 
+**Beginner?** Start with the resource list (one course per topic, 16-week order): [01-phase-0-resources.md](01-phase-0-resources.md).
+
 ## Goals
 
 - Explain what a packet, a port, a process, and a log file are
@@ -27,7 +29,7 @@ Prefer a Linux VM as your daily practice OS.
 - Logs (where they live; how to *read* them)
 - Package managers (install updates on *your* VM)
 
-Suggested: Ubuntu Server or Debian VM; 1–2 hours of terminal almost every study day.
+Suggested: Ubuntu **Desktop** VM first (see [beginner resources](01-phase-0-resources.md)); 1–2 hours of terminal almost every study day.
 
 ### Windows basics
 
@@ -42,7 +44,7 @@ Suggested: Ubuntu Server or Debian VM; 1–2 hours of terminal almost every stud
 - DNS, HTTP vs HTTPS
 - NAT, firewalls (what they are for)
 
-Courses (pick one): Cisco Networking Academy *Introduction to Networks*, or Professor Messer-style networking videos. Goal is vocabulary, not vendor exam dumping.
+Courses (pick **one**): Cisco NetAcad *Networking Basics* **or** Professor Messer Network+ early videos. Links: [01-phase-0-resources.md](01-phase-0-resources.md). Goal is vocabulary, not vendor exam dumping.
 
 ### Programming enough to read code
 
