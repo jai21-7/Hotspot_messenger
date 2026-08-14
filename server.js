@@ -11,9 +11,17 @@ const io = new Server(server);
 const PORT = 3000;
 
 const users = new Map();
+const userAvatars = new Map();
 
-function getOnlineNames() {
-  return Array.from(users.values());
+const AVATAR_OPTIONS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙", "🦄", "🐲", "🎮", "⚡", "🌟"];
+
+function getOnlineUsers() {
+  const names = Array.from(users.values());
+  const unique = [...new Set(names)];
+  return unique.map((name) => ({
+    name,
+    avatar: userAvatars.get(name) || "😀",
+  }));
 }
 
 function getSocketIdsByName(name) {
@@ -42,6 +50,23 @@ function getLanAddresses() {
   return results;
 }
 
+function parseJoinPayload(raw) {
+  if (typeof raw === "string") {
+    return { name: raw, avatar: "😀" };
+  }
+  if (raw && typeof raw === "object") {
+    return {
+      name: typeof raw.name === "string" ? raw.name : "",
+      avatar: typeof raw.avatar === "string" ? raw.avatar : "😀",
+    };
+  }
+  return { name: "", avatar: "😀" };
+}
+
+function isValidAvatar(avatar) {
+  return AVATAR_OPTIONS.includes(avatar);
+}
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/join-info", (req, res) => {
@@ -49,34 +74,35 @@ app.get("/api/join-info", (req, res) => {
   res.json({
     port: PORT,
     urls: addresses.map((ip) => `http://${ip}:${PORT}`),
+    avatars: AVATAR_OPTIONS,
   });
 });
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  socket.emit("user list", getOnlineNames());
+  socket.emit("user list", getOnlineUsers());
 
-  socket.on("join", (rawName) => {
-    if (typeof rawName !== "string") {
-      return;
-    }
-
+  socket.on("join", (rawPayload) => {
+    const { name: rawName, avatar: rawAvatar } = parseJoinPayload(rawPayload);
     const name = rawName.trim().slice(0, 24);
     if (!name) {
       return;
     }
 
+    const avatar = isValidAvatar(rawAvatar) ? rawAvatar : "😀";
     const isNew = !users.has(socket.id);
-    users.set(socket.id, name);
 
-    io.emit("user list", getOnlineNames());
+    users.set(socket.id, name);
+    userAvatars.set(name, avatar);
+
+    io.emit("user list", getOnlineUsers());
 
     socket.emit("chat history", { messages: history.getGroupMessages() });
     socket.emit("dm history", { threads: history.getDmThreadsForUser(name) });
 
     if (isNew) {
-      const joinText = `${name} joined the chat`;
+      const joinText = `${avatar} ${name} joined the chat`;
       history.addGroupSystem(joinText);
       io.emit("system message", joinText);
     }
@@ -261,10 +287,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const name = users.get(socket.id);
     if (name) {
+      const avatar = userAvatars.get(name) || "😀";
       users.delete(socket.id);
-      io.emit("user list", getOnlineNames());
+      const stillOnline = getSocketIdsByName(name).length > 0;
+      if (!stillOnline) {
+        userAvatars.delete(name);
+      }
+      io.emit("user list", getOnlineUsers());
 
-      const leaveText = `${name} left the chat`;
+      const leaveText = `${avatar} ${name} left the chat`;
       history.addGroupSystem(leaveText);
       io.emit("system message", leaveText);
 

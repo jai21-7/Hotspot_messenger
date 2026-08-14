@@ -81,7 +81,10 @@
               Copy
             </button>
           </div>
-          <p class="join-url" id="join-url">Loading join link…</p>
+          <div class="join-url-body">
+            <img id="join-qr" class="join-qr" alt="QR code to join chat" hidden />
+            <p class="join-url" id="join-url">Loading join link…</p>
+          </div>
         </div>
       </header>
 
@@ -97,7 +100,11 @@
           />
           <button type="button" id="join-button">Join</button>
         </div>
-        <p class="join-hint" id="join-hint">Enter a name and tap Join to start chatting.</p>
+        <div class="avatar-picker" id="avatar-picker" aria-label="Choose your avatar">
+          <span class="avatar-picker-label">Avatar</span>
+          <div class="avatar-options" id="avatar-options"></div>
+        </div>
+        <p class="join-hint" id="join-hint">Pick an avatar, enter a name, and tap Join.</p>
       </section>
 
       <section class="online-section" aria-label="Online users">
@@ -123,6 +130,19 @@
       <div id="dm-bar" class="dm-bar" hidden>
         <button type="button" id="dm-back" class="dm-back">← Group</button>
         <span class="dm-label">Private with <strong id="dm-partner"></strong></span>
+      </div>
+
+      <div class="search-bar" id="search-bar" hidden>
+        <label class="sr-only" for="search-input">Search messages</label>
+        <input
+          id="search-input"
+          type="search"
+          placeholder="Search messages…"
+          autocomplete="off"
+        />
+        <button type="button" id="search-clear" class="search-clear" title="Clear search" hidden>
+          ✕
+        </button>
       </div>
 
       <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
