@@ -19,6 +19,10 @@ function ensureDataDir() {
   }
 }
 
+function makeId() {
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 function load() {
   ensureDataDir();
   if (!fs.existsSync(HISTORY_FILE)) {
@@ -50,20 +54,25 @@ function dmKey(nameA, nameB) {
 }
 
 function addGroupChat(message) {
-  store.group.push({
+  const entry = {
+    id: makeId(),
     type: "chat",
     name: message.name,
     text: message.text,
     time: message.time,
-  });
+    edited: false,
+  };
+  store.group.push(entry);
   if (store.group.length > MAX_GROUP) {
     store.group = store.group.slice(-MAX_GROUP);
   }
   scheduleSave();
+  return entry;
 }
 
 function addGroupSystem(text) {
   const entry = {
+    id: makeId(),
     type: "system",
     text,
     time: new Date().toISOString(),
@@ -82,17 +91,97 @@ function addDmMessage(payload) {
     store.dms[key] = [];
   }
 
-  store.dms[key].push({
+  const entry = {
+    id: makeId(),
     from: payload.from,
     to: payload.to,
     text: payload.text,
     time: payload.time,
-  });
+    edited: false,
+  };
+
+  store.dms[key].push(entry);
 
   if (store.dms[key].length > MAX_DM_PER_THREAD) {
     store.dms[key] = store.dms[key].slice(-MAX_DM_PER_THREAD);
   }
   scheduleSave();
+  return entry;
+}
+
+function findGroupMessage(id) {
+  return store.group.find((m) => m.id === id);
+}
+
+function findDmMessage(id, userName) {
+  for (const [key, messages] of Object.entries(store.dms)) {
+    const [a, b] = key.split("::");
+    if (a !== userName && b !== userName) {
+      continue;
+    }
+    const found = messages.find((m) => m.id === id);
+    if (found) {
+      return { key, message: found };
+    }
+  }
+  return null;
+}
+
+function editGroupMessage(id, userName, newText) {
+  const msg = findGroupMessage(id);
+  if (!msg || msg.type !== "chat" || msg.name !== userName) {
+    return null;
+  }
+  msg.text = newText;
+  msg.edited = true;
+  scheduleSave();
+  return msg;
+}
+
+function deleteGroupMessage(id, userName) {
+  const index = store.group.findIndex((m) => m.id === id);
+  if (index === -1) {
+    return null;
+  }
+  const msg = store.group[index];
+  if (msg.type !== "chat" || msg.name !== userName) {
+    return null;
+  }
+  store.group.splice(index, 1);
+  scheduleSave();
+  return msg;
+}
+
+function editDmMessage(id, userName, newText) {
+  const result = findDmMessage(id, userName);
+  if (!result || result.message.from !== userName) {
+    return null;
+  }
+  result.message.text = newText;
+  result.message.edited = true;
+  scheduleSave();
+  return result.message;
+}
+
+function deleteDmMessage(id, userName) {
+  for (const [key, messages] of Object.entries(store.dms)) {
+    const [a, b] = key.split("::");
+    if (a !== userName && b !== userName) {
+      continue;
+    }
+    const index = messages.findIndex((m) => m.id === id);
+    if (index === -1) {
+      continue;
+    }
+    const msg = messages[index];
+    if (msg.from !== userName) {
+      return null;
+    }
+    messages.splice(index, 1);
+    scheduleSave();
+    return msg;
+  }
+  return null;
 }
 
 function getGroupMessages() {
@@ -119,6 +208,10 @@ module.exports = {
   addGroupChat,
   addGroupSystem,
   addDmMessage,
+  editGroupMessage,
+  deleteGroupMessage,
+  editDmMessage,
+  deleteDmMessage,
   getGroupMessages,
   getDmThreadsForUser,
 };
