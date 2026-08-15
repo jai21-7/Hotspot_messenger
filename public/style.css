@@ -971,6 +971,216 @@ body.joined .join-hint {
   color: #fef3c7;
 }
 
+/* ── Rooms & channels ── */
+.rooms-section {
+  padding: 0.75rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.rooms-header,
+.channels-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.rooms-title,
+.channels-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.mini-btn {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mini-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.room-select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.channels-panel {
+  margin-top: 0.55rem;
+}
+
+.channel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.channel-btn {
+  padding: 0.28rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.channel-btn::before {
+  content: "#";
+  color: var(--muted);
+}
+
+.channel-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.channel-btn.encrypted::after {
+  content: " 🔐";
+  font-size: 0.7rem;
+}
+
+.privacy-panel {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+}
+
+.privacy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.privacy-status {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.privacy-status.unlocked {
+  color: var(--accent);
+}
+
+.privacy-hint {
+  margin: 0.35rem 0 0.45rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.privacy-row,
+.dm-privacy-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.privacy-row input,
+.dm-privacy-row input {
+  flex: 1;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.dm-privacy-row {
+  margin-top: 0.35rem;
+}
+
+.dm-privacy-row input {
+  font-size: 0.75rem;
+}
+
+/* ── Attachments ── */
+.message-attachment {
+  margin-top: 0.4rem;
+}
+
+.message-attachment img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.message-attachment a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.message.own .message-attachment a {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.message .encrypted-badge {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.message .decrypt-error {
+  color: #ef4444;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.pending-attach {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 1.25rem 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.pending-attach button {
+  border: none;
+  background: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+
 .message .author {
   font-size: 0.72rem;
   font-weight: 700;
