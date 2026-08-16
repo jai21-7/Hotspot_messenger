@@ -358,6 +358,95 @@ body {
 .swatch-amber { background: linear-gradient(135deg, #d97706, #b45309); }
 .swatch-ocean { background: linear-gradient(135deg, #0284c7, #0369a1); }
 
+/* ── Native app: connect to LAN server ── */
+.server-connect {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.server-connect-card {
+  width: min(100%, 22rem);
+  padding: 1.5rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.server-connect-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.server-connect-card h1 {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.server-connect-hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.server-connect-hint code {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.server-connect-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  margin-bottom: 0.65rem;
+}
+
+.server-connect-error {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #dc2626;
+}
+
+.server-connect-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.server-connect-primary,
+.server-connect-secondary {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.server-connect-primary {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.server-connect-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
 .join-url-card {
   margin-top: 0.85rem;
   padding: 0.65rem 0.8rem;

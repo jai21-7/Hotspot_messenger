@@ -4,7 +4,11 @@
   "description": "Local Wi-Fi/hotspot group chat — message nearby devices without mobile data",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "vendor:copy": "node scripts/copy-vendor.js",
+    "postinstall": "node scripts/copy-vendor.js",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android"
   },
   "keywords": [
     "chat",
@@ -15,9 +19,17 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.1.0",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/haptics": "^8.0.2",
     "express": "^5.2.1",
     "multer": "^2.2.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
   }
 }
