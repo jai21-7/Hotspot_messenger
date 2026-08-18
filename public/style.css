@@ -1180,6 +1180,36 @@ body.joined .join-hint {
   font-size: 0.85rem;
 }
 
+/* ── PWA / standalone mobile ── */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+@media (display-mode: standalone) {
+  .app-header {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .live-badge::after {
+    content: " · App";
+    font-size: 0.65rem;
+    opacity: 0.7;
+  }
+}
+
+.install-app-btn {
+  animation: chipIn 0.3s ease;
+}
+
+.install-app-btn:not([hidden]) {
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
 
 .message .author {
   font-size: 0.72rem;
