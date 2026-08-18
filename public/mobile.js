@@ -19,6 +19,15 @@
   const copyServerBtn = document.getElementById("copy-server-btn");
   const shareServerBtn = document.getElementById("share-server-btn");
   const serverUrlDisplay = document.getElementById("server-url-display");
+  const appSplash = document.getElementById("app-splash");
+  const joinUrlCard = document.getElementById("join-url-card");
+  const onboardingStepName = document.getElementById("onboarding-step-name");
+  const settingsProfile = document.getElementById("settings-profile");
+  const settingsProfileDisplay = document.getElementById("settings-profile-display");
+  const settingsSoundBtn = document.getElementById("settings-sound-btn");
+  const openThemeBtn = document.getElementById("open-theme-btn");
+  const themeToggle = document.getElementById("theme-toggle");
+  const themePanel = document.getElementById("theme-panel");
 
   const STATUS_LABELS = {
     connected: "Connected",
@@ -79,6 +88,53 @@
     const show = document.body.classList.contains("joined") && isMobileLayout();
     bottomNav.hidden = !show;
     document.body.classList.toggle("has-bottom-nav", show);
+    if (joinUrlCard) {
+      joinUrlCard.classList.toggle("mobile-hidden", show || isMobileLayout());
+    }
+    if (onboardingStepName) {
+      onboardingStepName.hidden = document.body.classList.contains("joined");
+    }
+  }
+
+  function hideSplash() {
+    if (!appSplash) {
+      return;
+    }
+    appSplash.classList.add("app-splash--hide");
+    window.setTimeout(function () {
+      appSplash.hidden = true;
+    }, 400);
+  }
+
+  function initSplash() {
+    if (!appSplash) {
+      return;
+    }
+    window.setTimeout(hideSplash, 1200);
+  }
+
+  function updateSettingsProfile(name, avatar) {
+    if (!settingsProfile || !settingsProfileDisplay) {
+      return;
+    }
+    if (name) {
+      settingsProfile.hidden = false;
+      settingsProfileDisplay.textContent = `${avatar || "😀"} ${name}`;
+    } else {
+      settingsProfile.hidden = true;
+    }
+  }
+
+  function syncSettingsSoundBtn() {
+    if (!settingsSoundBtn) {
+      return;
+    }
+    const soundToggle = document.getElementById("sound-toggle");
+    if (!soundToggle) {
+      return;
+    }
+    const on = soundToggle.getAttribute("aria-pressed") === "true";
+    settingsSoundBtn.textContent = on ? "🔊 Sound on" : "🔇 Sound off";
   }
 
   function updateDmBadge(count) {
@@ -303,16 +359,38 @@
     });
   }
 
+  if (settingsSoundBtn) {
+    settingsSoundBtn.addEventListener("click", function () {
+      const soundToggle = document.getElementById("sound-toggle");
+      if (soundToggle) {
+        soundToggle.click();
+        syncSettingsSoundBtn();
+      }
+    });
+  }
+
+  if (openThemeBtn && themeToggle && themePanel) {
+    openThemeBtn.addEventListener("click", function () {
+      themePanel.hidden = false;
+      themeToggle.setAttribute("aria-expanded", "true");
+      if (typeof window.HMSwitchTab === "function") {
+        window.HMSwitchTab("settings");
+      }
+    });
+  }
+
   HMConnection.onStatusChange(updateConnectionBanner);
   updateConnectionBanner(HMConnection.getStatus());
 
   document.addEventListener("DOMContentLoaded", function () {
+    initSplash();
     initBottomNav();
     initPullToRefresh();
     initImageLightbox();
     initKeyboardScroll();
     updateServerSettings();
     updateBottomNavVisibility();
+    syncSettingsSoundBtn();
   });
 
   window.HMUpdateServerSettings = updateServerSettings;
@@ -320,4 +398,6 @@
   window.HMFocusChat = focusChat;
   window.HMUpdateDmBadge = updateDmBadge;
   window.HMUpdateMobileChrome = updateBottomNavVisibility;
+  window.HMUpdateSettingsProfile = updateSettingsProfile;
+  window.HMSyncSettingsSound = syncSettingsSoundBtn;
 })();

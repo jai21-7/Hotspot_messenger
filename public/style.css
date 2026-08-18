@@ -1699,3 +1699,69 @@ body.has-bottom-nav .app {
 body.lightbox-open {
   overflow: hidden;
 }
+
+/* ── Onboarding + splash ── */
+.onboarding-step {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.server-connect-card .onboarding-step {
+  color: var(--muted);
+}
+
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(145deg, #0f172a, #134e4a);
+  color: #fff;
+  transition: opacity 0.35s ease;
+}
+
+.app-splash--hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-splash-icon {
+  border-radius: 22%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.app-splash-title {
+  margin: 0.5rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.app-splash-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.join-url-card.mobile-hidden {
+  display: none;
+}
+
+body.joined.has-bottom-nav .tagline {
+  display: none;
+}
+
+body.joined.has-bottom-nav .app-header h1 {
+  font-size: 1.05rem;
+}
+
+.settings-sound-btn {
+  margin-top: 0.25rem;
+}

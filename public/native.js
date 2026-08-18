@@ -57,6 +57,9 @@
     try {
       await HMConnection.connectToServer(url);
       hideServerScreen();
+      if (typeof window.HMSwitchTab === "function") {
+        window.HMSwitchTab("rooms");
+      }
       if (typeof window.HMBootChat === "function") {
         await window.HMBootChat();
       }
@@ -132,6 +135,9 @@
         return;
       }
       hideServerScreen();
+      if (typeof window.HMSwitchTab === "function") {
+        window.HMSwitchTab("rooms");
+      }
     }
     if (typeof window.HMBootChat === "function") {
       await window.HMBootChat();

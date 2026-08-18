@@ -21,10 +21,16 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="app-splash" class="app-splash" aria-hidden="true">
+      <img src="/icons/icon-192.png" alt="" class="app-splash-icon" width="96" height="96" />
+      <p class="app-splash-title">Hotspot Messenger</p>
+      <p class="app-splash-sub">Local chat · no mobile data</p>
+    </div>
     <div class="page-backdrop" aria-hidden="true"></div>
 
     <section id="server-connect" class="server-connect" hidden aria-label="Connect to chat server">
       <div class="server-connect-card">
+        <p class="onboarding-step">Step 1 of 3 · Connect to server</p>
         <span class="server-connect-icon" aria-hidden="true">📡</span>
         <h1>Connect to server</h1>
         <p class="server-connect-hint">
@@ -137,6 +143,7 @@
 
       <div id="tab-rooms" class="tab-panel">
       <section class="name-section" aria-label="Your display name">
+        <p class="onboarding-step" id="onboarding-step-name">Step 2 of 3 · Choose your name</p>
         <label for="display-name">Display name</label>
         <div class="name-row">
           <input
@@ -206,6 +213,10 @@
       <div id="tab-settings" class="tab-panel" hidden>
         <section class="settings-section" aria-label="App settings">
           <h2 class="settings-title">Settings</h2>
+          <div class="settings-group" id="settings-profile" hidden>
+            <span class="settings-label">Profile</span>
+            <p id="settings-profile-display" class="settings-value">—</p>
+          </div>
           <div class="settings-group">
             <span class="settings-label">Server</span>
             <p id="server-url-display" class="settings-value">Not connected</p>
@@ -216,8 +227,13 @@
             </div>
           </div>
           <div class="settings-group">
+            <span class="settings-label">Notifications</span>
+            <button type="button" id="settings-sound-btn" class="mini-btn settings-sound-btn">🔊 Sound on</button>
+          </div>
+          <div class="settings-group">
             <span class="settings-label">Appearance</span>
-            <p class="settings-hint">Use the 🎨 button in the header to change theme, colors, and wallpaper.</p>
+            <p class="settings-hint">Customize theme, colors, and wallpaper.</p>
+            <button type="button" id="open-theme-btn" class="mini-btn">Open appearance</button>
           </div>
         </section>
       </div>
