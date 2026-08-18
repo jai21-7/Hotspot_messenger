@@ -107,6 +107,40 @@
         <p class="join-hint" id="join-hint">Pick an avatar, enter a name, and tap Join.</p>
       </section>
 
+      <section class="rooms-section" id="rooms-section" hidden aria-label="Rooms and channels">
+        <div class="rooms-header">
+          <h2 class="rooms-title">Rooms</h2>
+          <button type="button" id="create-room-btn" class="mini-btn" title="Create room">+ Room</button>
+        </div>
+        <div class="room-select-row">
+          <select id="room-select" class="room-select" aria-label="Select room"></select>
+        </div>
+        <div class="channels-panel">
+          <div class="channels-header">
+            <span class="channels-label">Channels</span>
+            <button type="button" id="create-channel-btn" class="mini-btn" title="Create channel">+</button>
+          </div>
+          <div class="channel-list" id="channel-list"></div>
+        </div>
+        <div class="privacy-panel" id="privacy-panel">
+          <div class="privacy-header">
+            <span class="privacy-label">🔐 Private mode</span>
+            <span id="privacy-status" class="privacy-status">Off</span>
+          </div>
+          <p class="privacy-hint">Messages are encrypted on your device. Share the passphrase with people in this room.</p>
+          <div class="privacy-row">
+            <input
+              id="room-passphrase"
+              type="password"
+              placeholder="Room passphrase"
+              autocomplete="off"
+              maxlength="64"
+            />
+            <button type="button" id="unlock-room-btn" class="mini-btn">Unlock</button>
+          </div>
+        </div>
+      </section>
+
       <section class="online-section" aria-label="Online users">
         <div class="online-header">
           <h2 class="online-title">Online</h2>
@@ -120,7 +154,7 @@
 
       <div class="chat-toolbar">
         <button type="button" id="mode-group" class="chat-mode active" aria-pressed="true">
-          Group
+          #general
         </button>
         <button type="button" id="mode-dm" class="chat-mode" aria-pressed="false" disabled>
           Direct
@@ -128,8 +162,12 @@
       </div>
 
       <div id="dm-bar" class="dm-bar" hidden>
-        <button type="button" id="dm-back" class="dm-back">← Group</button>
+        <button type="button" id="dm-back" class="dm-back">← Channels</button>
         <span class="dm-label">Private with <strong id="dm-partner"></strong></span>
+        <div class="dm-privacy-row">
+          <input id="dm-passphrase" type="password" placeholder="DM passphrase (optional)" maxlength="64" />
+          <button type="button" id="unlock-dm-btn" class="mini-btn">🔐</button>
+        </div>
       </div>
 
       <div class="search-bar" id="search-bar" hidden>
@@ -171,6 +209,10 @@
           <button type="button" class="emoji-btn" data-emoji="😎">😎</button>
         </div>
         <div class="composer-row">
+          <button type="button" id="attach-btn" class="composer-icon-btn" title="Attach file or image" disabled>
+            📎
+          </button>
+          <input type="file" id="file-input" accept="image/*,.pdf,.txt,.zip" hidden />
           <button type="button" id="emoji-toggle" class="composer-icon-btn" title="Add emoji" disabled>
             😀
           </button>
@@ -196,6 +238,7 @@
       </form>
     </div>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="crypto.js"></script>
     <script src="themes.js"></script>
     <script src="app.js"></script>
   </body>
