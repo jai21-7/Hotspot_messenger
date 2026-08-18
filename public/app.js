@@ -27,12 +27,24 @@ const avatarOptionsEl = document.getElementById("avatar-options");
 const searchBarEl = document.getElementById("search-bar");
 const searchInputEl = document.getElementById("search-input");
 const searchClearEl = document.getElementById("search-clear");
+const roomsSectionEl = document.getElementById("rooms-section");
+const roomSelectEl = document.getElementById("room-select");
+const channelListEl = document.getElementById("channel-list");
+const createRoomBtn = document.getElementById("create-room-btn");
+const createChannelBtn = document.getElementById("create-channel-btn");
+const roomPassphraseEl = document.getElementById("room-passphrase");
+const unlockRoomBtn = document.getElementById("unlock-room-btn");
+const privacyStatusEl = document.getElementById("privacy-status");
+const attachBtn = document.getElementById("attach-btn");
+const fileInputEl = document.getElementById("file-input");
+const dmPassphraseEl = document.getElementById("dm-passphrase");
+const unlockDmBtn = document.getElementById("unlock-dm-btn");
 
 const MAX_MESSAGE_LENGTH = 500;
 const HISTORY_KEY = "hm-chat-history";
 const SOUND_KEY = "hm-sound-enabled";
 const AVATAR_KEY = "hm-avatar";
-const MAX_GROUP_HISTORY = 200;
+const MAX_CHANNEL_HISTORY = 200;
 const MAX_DM_HISTORY = 100;
 const BASE_TITLE = "Hotspot Messenger";
 const DEFAULT_AVATARS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙", "🦄", "🐲", "🎮", "⚡", "🌟"];
@@ -40,21 +52,40 @@ const DEFAULT_AVATARS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙",
 let hasJoined = false;
 let myName = "";
 let myAvatar = localStorage.getItem(AVATAR_KEY) || "😀";
-let chatMode = "group";
+let chatMode = "channel";
+let activeRoom = "main";
+let activeChannel = "general";
 let activeDmPartner = null;
 let lastDmPartner = null;
 let joinUrls = [];
+let maxFileSize = 5 * 1024 * 1024;
 let searchQuery = "";
 let soundEnabled = localStorage.getItem(SOUND_KEY) !== "false";
 let typingTimeout = null;
 let typingStopTimeout = null;
 let unreadBadgeCount = 0;
+let pendingAttachment = null;
 const typingUsers = new Map();
 const userAvatars = new Map();
+const roomPassphrases = new Map();
+const dmPassphrases = new Map();
+let roomsData = {};
 
-const groupMessages = [];
+const channelMessages = new Map();
 const dmThreads = new Map();
 const unreadDm = new Set();
+
+function channelKey(room, channel) {
+  return `${room}:${channel}`;
+}
+
+function getChannelStore(room, channel) {
+  const key = channelKey(room, channel);
+  if (!channelMessages.has(key)) {
+    channelMessages.set(key, []);
+  }
+  return channelMessages.get(key);
+}
 
 // ── Avatar picker ──
 function renderAvatarPicker(avatars) {
@@ -143,45 +174,247 @@ function messageMatchesSearch(msg) {
   }
   const text = (msg.text || "").toLowerCase();
   const name = (msg.name || msg.from || "").toLowerCase();
-  return text.includes(searchQuery) || name.includes(searchQuery);
+  const attach = msg.attachment && msg.attachment.name ? msg.attachment.name.toLowerCase() : "";
+  return text.includes(searchQuery) || name.includes(searchQuery) || attach.includes(searchQuery);
+}
+
+function isRoomEncrypted(roomId) {
+  return Boolean(roomsData[roomId] && roomsData[roomId].encrypted);
+}
+
+function getRoomPassphrase(roomId) {
+  return roomPassphrases.get(roomId) || "";
+}
+
+function getDmPassphrase(partner) {
+  return dmPassphrases.get(partner) || "";
+}
+
+function updatePrivacyUI() {
+  const encrypted = isRoomEncrypted(activeRoom);
+  const unlocked = Boolean(getRoomPassphrase(activeRoom));
+  privacyStatusEl.textContent = encrypted ? (unlocked ? "Unlocked" : "Locked") : "Off";
+  privacyStatusEl.classList.toggle("unlocked", encrypted && unlocked);
+  document.getElementById("privacy-panel").style.display = encrypted ? "block" : "none";
+}
+
+async function decryptMessageContent(msg, scope, passphrase) {
+  if (!msg.encrypted || !msg.ciphertext || !msg.iv) {
+    return msg.text || "";
+  }
+  if (!passphrase) {
+    return "🔒 Encrypted — enter passphrase to read";
+  }
+  const plain = await CryptoHelper.decryptText(msg.ciphertext, msg.iv, passphrase, scope);
+  return plain || "🔒 Could not decrypt — wrong passphrase?";
+}
+
+async function prepareOutgoingText(text, scope, passphrase, forceEncrypt) {
+  if (!forceEncrypt || !passphrase) {
+    return { text, encrypted: false };
+  }
+  const enc = await CryptoHelper.encryptText(text, passphrase, scope);
+  return { encrypted: true, ciphertext: enc.ciphertext, iv: enc.iv, text: "" };
+}
+
+async function uploadFile(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const err = await res.json().catch(function () {
+      return { error: "Upload failed" };
+    });
+    throw new Error(err.error || "Upload failed");
+  }
+  return res.json();
+}
+
+function renderRoomsUI() {
+  roomSelectEl.innerHTML = "";
+  for (const [id, room] of Object.entries(roomsData)) {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = room.encrypted ? `${room.name} 🔐` : room.name;
+    if (id === activeRoom) {
+      opt.selected = true;
+    }
+    roomSelectEl.appendChild(opt);
+  }
+
+  channelListEl.innerHTML = "";
+  const room = roomsData[activeRoom];
+  if (!room) {
+    return;
+  }
+  for (const ch of room.channels) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "channel-btn";
+    if (ch === activeChannel) {
+      btn.classList.add("active");
+    }
+    if (room.encrypted) {
+      btn.classList.add("encrypted");
+    }
+    btn.textContent = ch;
+    btn.addEventListener("click", function () {
+      switchChannel(activeRoom, ch);
+    });
+    channelListEl.appendChild(btn);
+  }
+  updatePrivacyUI();
+}
+
+function switchChannel(room, channel) {
+  if (chatMode === "dm") {
+    setChatMode("channel");
+  }
+  activeRoom = room;
+  activeChannel = channel;
+  socket.emit("join channel", { room, channel });
+  renderRoomsUI();
+  modeGroupBtn.textContent = `#${channel}`;
+}
+
+roomSelectEl.addEventListener("change", function () {
+  const room = roomSelectEl.value;
+  const channels = roomsData[room] ? roomsData[room].channels : ["general"];
+  switchChannel(room, channels[0]);
+});
+
+createRoomBtn.addEventListener("click", function () {
+  const roomId = prompt("Room id (letters/numbers, e.g. study-group):");
+  if (!roomId) {
+    return;
+  }
+  const name = prompt("Display name for the room:", roomId) || roomId;
+  const encrypted = confirm("Enable private (encrypted) mode for this room?");
+  socket.emit("create room", { roomId, name, encrypted });
+});
+
+createChannelBtn.addEventListener("click", function () {
+  const channel = prompt("Channel name (e.g. homework):");
+  if (!channel) {
+    return;
+  }
+  socket.emit("create channel", { room: activeRoom, channel });
+});
+
+unlockRoomBtn.addEventListener("click", function () {
+  const pass = roomPassphraseEl.value.trim();
+  if (!pass) {
+    alert("Enter the room passphrase.");
+    return;
+  }
+  roomPassphrases.set(activeRoom, pass);
+  sessionStorage.setItem(`hm-pass-${activeRoom}`, pass);
+  updatePrivacyUI();
+  renderCurrentView();
+});
+
+unlockDmBtn.addEventListener("click", function () {
+  if (!activeDmPartner) {
+    return;
+  }
+  const pass = dmPassphraseEl.value.trim();
+  if (!pass) {
+    alert("Enter a DM passphrase.");
+    return;
+  }
+  dmPassphrases.set(activeDmPartner, pass);
+  renderCurrentView();
+});
+
+attachBtn.addEventListener("click", function () {
+  fileInputEl.click();
+});
+
+fileInputEl.addEventListener("change", function () {
+  const file = fileInputEl.files && fileInputEl.files[0];
+  if (!file) {
+    return;
+  }
+  if (file.size > maxFileSize) {
+    alert(`File too large. Max ${Math.round(maxFileSize / 1024 / 1024)} MB.`);
+    fileInputEl.value = "";
+    return;
+  }
+  pendingAttachment = file;
+  showPendingAttachment();
+  fileInputEl.value = "";
+});
+
+function showPendingAttachment() {
+  let bar = document.getElementById("pending-attach-bar");
+  if (!pendingAttachment) {
+    if (bar) {
+      bar.remove();
+    }
+    return;
+  }
+  if (!bar) {
+    bar = document.createElement("p");
+    bar.id = "pending-attach-bar";
+    bar.className = "pending-attach";
+    chatForm.insertAdjacentElement("beforebegin", bar);
+  }
+  bar.innerHTML = "";
+  const label = document.createElement("span");
+  label.textContent = `📎 ${pendingAttachment.name}`;
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.textContent = "✕";
+  clear.addEventListener("click", function () {
+    pendingAttachment = null;
+    showPendingAttachment();
+  });
+  bar.appendChild(label);
+  bar.appendChild(clear);
 }
 
 // ── localStorage cache (backup); server history loads on join ──
 function saveHistory() {
   const dmObj = {};
+  const chObj = {};
   for (const [partner, msgs] of dmThreads) {
     dmObj[partner] = msgs.slice(-MAX_DM_HISTORY);
   }
+  for (const [key, msgs] of channelMessages) {
+    chObj[key] = msgs.slice(-MAX_CHANNEL_HISTORY);
+  }
   localStorage.setItem(
     HISTORY_KEY,
-    JSON.stringify({
-      groupMessages: groupMessages.slice(-MAX_GROUP_HISTORY),
-      dmThreads: dmObj,
-    })
+    JSON.stringify({ channelMessages: chObj, dmThreads: dmObj })
   );
 }
 
-function applyGroupHistory(messages) {
-  groupMessages.length = 0;
+function applyChannelHistory(room, channel, messages) {
+  const store = getChannelStore(room, channel);
+  store.length = 0;
   if (!Array.isArray(messages)) {
     return;
   }
   for (const msg of messages) {
     if (msg.type === "system") {
-      groupMessages.push({ type: "system", id: msg.id, text: msg.text, time: msg.time });
+      store.push({ type: "system", id: msg.id, text: msg.text, time: msg.time });
     } else {
-      groupMessages.push({
+      store.push({
         type: "chat",
         id: msg.id,
         name: msg.name,
         text: msg.text,
         time: msg.time,
         edited: Boolean(msg.edited),
+        encrypted: Boolean(msg.encrypted),
+        ciphertext: msg.ciphertext,
+        iv: msg.iv,
+        attachment: msg.attachment || null,
       });
     }
   }
   saveHistory();
-  if (chatMode === "group") {
+  if (chatMode === "channel" && activeRoom === room && activeChannel === channel) {
     renderCurrentView();
   }
 }
@@ -202,6 +435,10 @@ function applyDmHistory(threads) {
           text: m.text,
           time: m.time,
           edited: Boolean(m.edited),
+          encrypted: Boolean(m.encrypted),
+          ciphertext: m.ciphertext,
+          iv: m.iv,
+          attachment: m.attachment || null,
         };
       })
     );
@@ -212,8 +449,40 @@ function applyDmHistory(threads) {
   }
 }
 
-socket.on("chat history", function (data) {
-  applyGroupHistory(data.messages);
+socket.on("channel history", function (data) {
+  applyChannelHistory(data.room, data.channel, data.messages);
+});
+
+socket.on("channel joined", function (data) {
+  activeRoom = data.room;
+  activeChannel = data.channel;
+  const saved = sessionStorage.getItem(`hm-pass-${data.room}`);
+  if (saved) {
+    roomPassphrases.set(data.room, saved);
+  }
+  renderRoomsUI();
+  renderCurrentView();
+});
+
+socket.on("rooms list", function (rooms) {
+  roomsData = rooms || {};
+  renderRoomsUI();
+});
+
+socket.on("room error", function (data) {
+  alert(data.message || "Room error.");
+});
+
+socket.on("channel message", function (data) {
+  if (data.type !== "system") {
+    return;
+  }
+  const store = getChannelStore(data.room, data.channel);
+  store.push({ type: "system", text: data.text });
+  saveHistory();
+  if (chatMode === "channel" && activeRoom === data.room && activeChannel === data.channel) {
+    renderCurrentView();
+  }
 });
 
 socket.on("dm history", function (data) {
@@ -333,6 +602,9 @@ function emitTyping(typing) {
   const payload = { typing };
   if (chatMode === "dm" && activeDmPartner) {
     payload.to = activeDmPartner;
+  } else if (chatMode === "channel") {
+    payload.room = activeRoom;
+    payload.channel = activeChannel;
   }
   socket.emit("typing", payload);
 }
@@ -364,7 +636,10 @@ function showTypingIndicator(name, typing, isDm) {
     return;
   }
 
-  if (chatMode !== "group" || name === myName) {
+  if (chatMode !== "channel" || name === myName) {
+    return;
+  }
+  if (data.room && (data.room !== activeRoom || data.channel !== activeChannel)) {
     return;
   }
 
@@ -397,8 +672,9 @@ function getDmThread(partner) {
   return dmThreads.get(partner);
 }
 
-function findGroupMessageIndex(id) {
-  return groupMessages.findIndex(function (m) {
+function findChannelMessageIndex(room, channel, id) {
+  const store = getChannelStore(room, channel);
+  return store.findIndex(function (m) {
     return m.id === id;
   });
 }
@@ -414,6 +690,13 @@ async function loadJoinInfo() {
   try {
     const response = await fetch("/api/join-info");
     const data = await response.json();
+
+    if (data.rooms) {
+      roomsData = data.rooms;
+    }
+    if (data.maxFileSize) {
+      maxFileSize = data.maxFileSize;
+    }
 
     if (data.avatars) {
       renderAvatarPicker(data.avatars);
@@ -456,7 +739,10 @@ function joinChat() {
   messageInput.disabled = false;
   sendButton.disabled = false;
   emojiToggle.disabled = false;
+  attachBtn.disabled = false;
   searchBarEl.hidden = false;
+  roomsSectionEl.hidden = false;
+  renderRoomsUI();
   messageInput.placeholder = "Type a message...";
   joinHint.textContent = `${myAvatar} You're in as ${name}`;
   messageInput.focus();
@@ -479,12 +765,12 @@ function setChatMode(mode, partner) {
   if (mode === "dm" && partner) {
     lastDmPartner = partner;
     activeDmPartner = partner;
-  } else if (mode === "group") {
+  } else if (mode === "channel") {
     activeDmPartner = null;
   }
 
-  modeGroupBtn.classList.toggle("active", mode === "group");
-  modeGroupBtn.setAttribute("aria-pressed", mode === "group" ? "true" : "false");
+  modeGroupBtn.classList.toggle("active", mode === "channel");
+  modeGroupBtn.setAttribute("aria-pressed", mode === "channel" ? "true" : "false");
   modeDmBtn.classList.toggle("active", mode === "dm");
   modeDmBtn.setAttribute("aria-pressed", mode === "dm" ? "true" : "false");
   modeDmBtn.disabled = !lastDmPartner;
@@ -498,7 +784,8 @@ function setChatMode(mode, partner) {
   } else {
     dmBar.hidden = true;
     modeDmBtn.textContent = lastDmPartner ? `Direct · ${lastDmPartner}` : "Direct";
-    messageInput.placeholder = "Type a message...";
+    modeGroupBtn.textContent = `#${activeChannel}`;
+    messageInput.placeholder = `Message #${activeChannel}...`;
   }
 
   renderOnlineList(lastOnlineUsers);
@@ -518,12 +805,12 @@ function openDm(partner) {
 }
 
 modeGroupBtn.addEventListener("click", function () {
-  setChatMode("group");
+  setChatMode("channel");
   messageInput.focus();
 });
 
 dmBackBtn.addEventListener("click", function () {
-  setChatMode("group");
+  setChatMode("channel");
   messageInput.focus();
 });
 
@@ -533,7 +820,7 @@ modeDmBtn.addEventListener("click", function () {
   }
 });
 
-chatForm.addEventListener("submit", function (event) {
+chatForm.addEventListener("submit", async function (event) {
   event.preventDefault();
 
   if (!hasJoined) {
@@ -543,7 +830,7 @@ chatForm.addEventListener("submit", function (event) {
   }
 
   const text = messageInput.value.trim();
-  if (!text) {
+  if (!text && !pendingAttachment) {
     messageInput.focus();
     return;
   }
@@ -551,10 +838,67 @@ chatForm.addEventListener("submit", function (event) {
   emitTyping(false);
   emojiPicker.hidden = true;
 
-  if (chatMode === "dm" && activeDmPartner) {
-    socket.emit("dm message", { to: activeDmPartner, text });
-  } else {
-    socket.emit("chat message", { text });
+  let attachment = null;
+  try {
+    if (pendingAttachment) {
+      let fileToUpload = pendingAttachment;
+      let encIv = null;
+      if (chatMode === "channel" && isRoomEncrypted(activeRoom) && getRoomPassphrase(activeRoom)) {
+        const enc = await CryptoHelper.encryptBlob(
+          pendingAttachment,
+          getRoomPassphrase(activeRoom),
+          CryptoHelper.roomScope(activeRoom)
+        );
+        fileToUpload = new File([enc.blob], pendingAttachment.name + ".enc", {
+          type: "application/octet-stream",
+        });
+        encIv = enc.iv;
+      }
+      const uploaded = await uploadFile(fileToUpload);
+      attachment = {
+        fileId: uploaded.fileId,
+        name: pendingAttachment.name,
+        mime: pendingAttachment.type,
+        size: pendingAttachment.size,
+        url: uploaded.url,
+        encrypted: Boolean(encIv),
+        iv: encIv,
+      };
+      pendingAttachment = null;
+      showPendingAttachment();
+    }
+
+    if (chatMode === "dm" && activeDmPartner) {
+      const dmPass = getDmPassphrase(activeDmPartner);
+      const scope = CryptoHelper.dmScope(myName, activeDmPartner);
+      const payload = { to: activeDmPartner, attachment };
+      if (text && dmPass) {
+        const enc = await CryptoHelper.encryptText(text, dmPass, scope);
+        payload.encrypted = true;
+        payload.ciphertext = enc.ciphertext;
+        payload.iv = enc.iv;
+      } else {
+        payload.text = text;
+      }
+      socket.emit("dm message", payload);
+    } else {
+      const roomPass = getRoomPassphrase(activeRoom);
+      const scope = CryptoHelper.roomScope(activeRoom);
+      const payload = { attachment };
+      if (text) {
+        const prepared = await prepareOutgoingText(
+          text,
+          scope,
+          roomPass,
+          isRoomEncrypted(activeRoom)
+        );
+        Object.assign(payload, prepared);
+      }
+      socket.emit("chat message", payload);
+    }
+  } catch (error) {
+    alert(error.message || "Could not send message.");
+    return;
   }
 
   messageInput.value = "";
@@ -567,17 +911,24 @@ function shouldNotifyForIncoming(isOwn, isVisibleChat) {
 }
 
 socket.on("chat message", function (data) {
-  groupMessages.push({
+  const room = data.room || activeRoom;
+  const channel = data.channel || activeChannel;
+  getChannelStore(room, channel).push({
     type: "chat",
     id: data.id,
     name: data.name,
     text: data.text,
     time: data.time,
     edited: Boolean(data.edited),
+    encrypted: Boolean(data.encrypted),
+    ciphertext: data.ciphertext,
+    iv: data.iv,
+    attachment: data.attachment || null,
   });
   saveHistory();
 
-  const isVisibleChat = chatMode === "group";
+  const isVisibleChat =
+    chatMode === "channel" && activeRoom === room && activeChannel === channel;
   if (data.name !== myName) {
     playMessageSound();
     if (shouldNotifyForIncoming(false, isVisibleChat)) {
@@ -600,6 +951,10 @@ socket.on("dm message", function (data) {
     text: data.text,
     time: data.time,
     edited: Boolean(data.edited),
+    encrypted: Boolean(data.encrypted),
+    ciphertext: data.ciphertext,
+    iv: data.iv,
+    attachment: data.attachment || null,
   });
   saveHistory();
 
@@ -624,7 +979,14 @@ socket.on("message updated", function (data) {
     const partner = data.from === myName ? data.to : data.from;
     const msg = findDmMessage(partner, data.id);
     if (msg) {
-      msg.text = data.text;
+      if (data.encrypted) {
+        msg.encrypted = true;
+        msg.ciphertext = data.ciphertext;
+        msg.iv = data.iv;
+        msg.text = "";
+      } else {
+        msg.text = data.text;
+      }
       msg.edited = true;
       saveHistory();
     }
@@ -634,13 +996,25 @@ socket.on("message updated", function (data) {
     return;
   }
 
-  const index = findGroupMessageIndex(data.id);
+  const index = findChannelMessageIndex(data.room || activeRoom, data.channel || activeChannel, data.id);
   if (index !== -1) {
-    groupMessages[index].text = data.text;
-    groupMessages[index].edited = true;
+    const store = getChannelStore(data.room || activeRoom, data.channel || activeChannel);
+    if (data.encrypted) {
+      store[index].encrypted = true;
+      store[index].ciphertext = data.ciphertext;
+      store[index].iv = data.iv;
+      store[index].text = "";
+    } else {
+      store[index].text = data.text;
+    }
+    store[index].edited = true;
     saveHistory();
   }
-  if (chatMode === "group") {
+  if (
+    chatMode === "channel" &&
+    activeRoom === (data.room || activeRoom) &&
+    activeChannel === (data.channel || activeChannel)
+  ) {
     renderCurrentView();
   }
 });
@@ -662,12 +1036,14 @@ socket.on("message deleted", function (data) {
     return;
   }
 
-  const index = findGroupMessageIndex(data.id);
+  const room = data.room || activeRoom;
+  const channel = data.channel || activeChannel;
+  const index = findChannelMessageIndex(room, channel, data.id);
   if (index !== -1) {
-    groupMessages.splice(index, 1);
+    getChannelStore(room, channel).splice(index, 1);
     saveHistory();
   }
-  if (chatMode === "group") {
+  if (chatMode === "channel" && activeRoom === room && activeChannel === channel) {
     renderCurrentView();
   }
 });
@@ -677,9 +1053,9 @@ socket.on("dm error", function (data) {
 });
 
 socket.on("system message", function (text) {
-  groupMessages.push({ type: "system", text });
+  getChannelStore(activeRoom, activeChannel).push({ type: "system", text });
   saveHistory();
-  if (chatMode === "group") {
+  if (chatMode === "channel") {
     renderCurrentView();
   }
 });
@@ -785,7 +1161,60 @@ function highlightText(text) {
   return wrapper;
 }
 
-function renderCurrentView() {
+async function appendAttachment(parent, msg, scope, passphrase) {
+  if (!msg.attachment) {
+    return;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "message-attachment";
+
+  if (msg.attachment.encrypted && msg.attachment.iv && passphrase) {
+    try {
+      const res = await fetch(msg.attachment.url);
+      const blob = await res.blob();
+      const plain = await CryptoHelper.decryptBlob(
+        blob,
+        msg.attachment.iv,
+        passphrase,
+        scope
+      );
+      if (!plain) {
+        wrap.textContent = "🔒 Could not decrypt file";
+        parent.appendChild(wrap);
+        return;
+      }
+      if ((msg.attachment.mime || "").startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(plain);
+        img.alt = msg.attachment.name;
+        wrap.appendChild(img);
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(plain);
+        link.download = msg.attachment.name;
+        link.textContent = `📎 ${msg.attachment.name}`;
+        wrap.appendChild(link);
+      }
+    } catch (error) {
+      wrap.textContent = "🔒 Could not load encrypted file";
+    }
+  } else if ((msg.attachment.mime || "").startsWith("image/")) {
+    const img = document.createElement("img");
+    img.src = msg.attachment.url;
+    img.alt = msg.attachment.name;
+    wrap.appendChild(img);
+  } else {
+    const link = document.createElement("a");
+    link.href = msg.attachment.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = `📎 ${msg.attachment.name}`;
+    wrap.appendChild(link);
+  }
+  parent.appendChild(wrap);
+}
+
+async function renderCurrentView() {
   messagesEl.innerHTML = "";
   let visibleCount = 0;
 
@@ -798,7 +1227,7 @@ function renderCurrentView() {
         <div class="empty-state">
           <span class="empty-icon" aria-hidden="true">🔒</span>
           <p>Private chat with ${activeDmPartner}</p>
-          <span class="empty-sub">Only you two can see messages here.</span>
+          <span class="empty-sub">Only you two can see messages here. Use a shared DM passphrase to encrypt.</span>
         </div>`;
       return;
     }
@@ -813,22 +1242,28 @@ function renderCurrentView() {
       return;
     }
 
+    const dmScope = CryptoHelper.dmScope(myName, activeDmPartner);
+    const dmPass = getDmPassphrase(activeDmPartner);
     for (const msg of filtered) {
-      messagesEl.appendChild(buildDmMessageEl(msg));
+      messagesEl.appendChild(await buildDmMessageEl(msg, dmScope, dmPass));
       visibleCount += 1;
     }
   } else {
-    if (groupMessages.length === 0) {
+    const store = getChannelStore(activeRoom, activeChannel);
+    if (store.length === 0) {
       messagesEl.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon" aria-hidden="true">💬</span>
-          <p>No messages yet</p>
-          <span class="empty-sub">Join the chat and say hello!</span>
+          <p>#${activeChannel}</p>
+          <span class="empty-sub">Say hello in this channel!</span>
         </div>`;
       return;
     }
 
-    for (const msg of groupMessages) {
+    const scope = CryptoHelper.roomScope(activeRoom);
+    const pass = getRoomPassphrase(activeRoom);
+
+    for (const msg of store) {
       if (msg.type === "system") {
         if (!searchQuery || (msg.text || "").toLowerCase().includes(searchQuery)) {
           messagesEl.appendChild(buildSystemMessageEl(msg.text));
@@ -839,7 +1274,7 @@ function renderCurrentView() {
       if (!messageMatchesSearch(msg)) {
         continue;
       }
-      messagesEl.appendChild(buildChatMessageEl(msg));
+      messagesEl.appendChild(await buildChatMessageEl(msg, scope, pass));
       visibleCount += 1;
     }
 
@@ -903,7 +1338,7 @@ function buildMessageActions(msg, isDm) {
   return actions;
 }
 
-function buildChatMessageEl(msg) {
+async function buildChatMessageEl(msg, scope, passphrase) {
   const messageEl = document.createElement("article");
   messageEl.className = "message";
   if (msg.id) {
@@ -926,6 +1361,12 @@ function buildChatMessageEl(msg) {
   const authorEl = document.createElement("span");
   authorEl.className = "author";
   authorEl.textContent = msg.name === myName ? "You" : msg.name;
+  if (msg.encrypted) {
+    const lock = document.createElement("span");
+    lock.className = "encrypted-badge";
+    lock.textContent = "🔐";
+    authorEl.appendChild(lock);
+  }
 
   const timeEl = document.createElement("time");
   timeEl.className = "time";
@@ -942,19 +1383,21 @@ function buildChatMessageEl(msg) {
 
   const textEl = document.createElement("p");
   textEl.className = "text";
-  textEl.appendChild(highlightText(msg.text));
+  const displayText = await decryptMessageContent(msg, scope, passphrase);
+  textEl.appendChild(highlightText(displayText));
 
   messageEl.appendChild(headerEl);
   messageEl.appendChild(textEl);
+  await appendAttachment(messageEl, msg, scope, passphrase);
 
-  if (msg.name === myName && msg.id) {
+  if (msg.name === myName && msg.id && !msg.encrypted) {
     messageEl.appendChild(buildMessageActions(msg, false));
   }
 
   return messageEl;
 }
 
-function buildDmMessageEl(msg) {
+async function buildDmMessageEl(msg, scope, passphrase) {
   const isOwn = msg.from === myName;
   const messageEl = document.createElement("article");
   messageEl.className = "message dm";
@@ -978,6 +1421,12 @@ function buildDmMessageEl(msg) {
   const authorEl = document.createElement("span");
   authorEl.className = "author";
   authorEl.textContent = isOwn ? "You" : msg.from;
+  if (msg.encrypted) {
+    const lock = document.createElement("span");
+    lock.className = "encrypted-badge";
+    lock.textContent = "🔐";
+    authorEl.appendChild(lock);
+  }
 
   const timeEl = document.createElement("time");
   timeEl.className = "time";
@@ -994,12 +1443,14 @@ function buildDmMessageEl(msg) {
 
   const textEl = document.createElement("p");
   textEl.className = "text";
-  textEl.appendChild(highlightText(msg.text));
+  const displayText = await decryptMessageContent(msg, scope, passphrase);
+  textEl.appendChild(highlightText(displayText));
 
   messageEl.appendChild(headerEl);
   messageEl.appendChild(textEl);
+  await appendAttachment(messageEl, msg, scope, passphrase);
 
-  if (isOwn && msg.id) {
+  if (isOwn && msg.id && !msg.encrypted) {
     messageEl.appendChild(buildMessageActions(msg, true));
   }
 
