@@ -492,7 +492,13 @@ socket.on("dm history", function (data) {
   applyDmHistory(data.threads);
 });
 
-// ── Sound ──
+// ── Sound + haptics ──
+function hapticLight() {
+  if (typeof window.HMHaptic === "function") {
+    window.HMHaptic();
+  }
+}
+
 function playMessageSound() {
   if (!soundEnabled) {
     return;
@@ -912,6 +918,7 @@ chatForm.addEventListener("submit", async function (event) {
   messageInput.value = "";
   updateCharCounter();
   messageInput.focus();
+  hapticLight();
 });
 
 function shouldNotifyForIncoming(isOwn, isVisibleChat) {
@@ -939,6 +946,7 @@ socket.on("chat message", function (data) {
     chatMode === "channel" && activeRoom === room && activeChannel === channel;
   if (data.name !== myName) {
     playMessageSound();
+    hapticLight();
     if (shouldNotifyForIncoming(false, isVisibleChat)) {
       bumpUnreadBadge();
     }
@@ -969,6 +977,7 @@ socket.on("dm message", function (data) {
   const isVisibleChat = chatMode === "dm" && activeDmPartner === partner;
   if (data.from !== myName) {
     playMessageSound();
+    hapticLight();
     if (shouldNotifyForIncoming(false, isVisibleChat)) {
       bumpUnreadBadge();
     }
@@ -1093,8 +1102,12 @@ window.HMBootChat = async function () {
       socket = HMConnection.getSocket();
     }
   }
+  HMConnection.watchSocket(socket);
   HMConnection.bindHandlersOnce(registerSocketHandlers);
   await loadJoinInfo();
+  if (typeof window.HMUpdateServerSettings === "function") {
+    window.HMUpdateServerSettings();
+  }
 };
 
 function renderOnlineList(users) {
@@ -1491,3 +1504,24 @@ function buildSystemMessageEl(text) {
   messageEl.appendChild(highlightText(text));
   return messageEl;
 }
+
+window.HMOnReconnect = function () {
+  if (!hasJoined || !myName || !socket) {
+    return;
+  }
+  socket.emit("join", { name: myName, avatar: myAvatar });
+  if (chatMode === "channel") {
+    socket.emit("join channel", { room: activeRoom, channel: activeChannel });
+  }
+};
+
+window.HMRefreshChat = function () {
+  if (!socket || !hasJoined) {
+    return;
+  }
+  if (chatMode === "channel") {
+    socket.emit("join channel", { room: activeRoom, channel: activeChannel });
+  } else {
+    renderCurrentView();
+  }
+};

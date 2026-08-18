@@ -4,6 +4,70 @@ const HMConnection = (function () {
   let socket = null;
   let serverBase = "";
   let handlersBound = false;
+  let connectionStatus = "offline";
+  let hadConnected = false;
+  const statusListeners = new Set();
+
+  function setStatus(status) {
+    if (connectionStatus === status) {
+      return;
+    }
+    connectionStatus = status;
+    for (const listener of statusListeners) {
+      try {
+        listener(status);
+      } catch (error) {
+        // ignore listener errors
+      }
+    }
+  }
+
+  function getStatus() {
+    return connectionStatus;
+  }
+
+  function onStatusChange(listener) {
+    if (typeof listener === "function") {
+      statusListeners.add(listener);
+    }
+    return function () {
+      statusListeners.delete(listener);
+    };
+  }
+
+  function watchSocket(sock) {
+    if (!sock || sock.__hmWatched) {
+      return;
+    }
+    sock.__hmWatched = true;
+
+    sock.on("connect", function () {
+      const isReconnect = hadConnected;
+      hadConnected = true;
+      setStatus("connected");
+      if (isReconnect && typeof window.HMOnReconnect === "function") {
+        window.HMOnReconnect();
+      }
+    });
+
+    sock.on("disconnect", function () {
+      setStatus(sock.active ? "reconnecting" : "offline");
+    });
+
+    sock.on("reconnect_attempt", function () {
+      setStatus("reconnecting");
+    });
+
+    sock.on("reconnect_failed", function () {
+      setStatus("offline");
+    });
+
+    sock.on("connect_error", function () {
+      if (!hadConnected) {
+        setStatus("offline");
+      }
+    });
+  }
 
   function isNativeApp() {
     return Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -95,6 +159,7 @@ const HMConnection = (function () {
 
       socket.once("connect", onConnect);
       socket.once("connect_error", onError);
+      watchSocket(socket);
     });
   }
 
@@ -122,5 +187,8 @@ const HMConnection = (function () {
     bindHandlersOnce,
     needsServerScreen,
     normalizeBase,
+    getStatus,
+    onStatusChange,
+    watchSocket,
   };
 })();
