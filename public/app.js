@@ -1,5 +1,5 @@
-// Connect to the Socket.io server (same computer/hotspot host)
-const socket = io();
+// Socket connects via HMConnection (see connection.js + native.js)
+let socket = null;
 
 const chatForm = document.getElementById("chat-form");
 const messageInput = document.getElementById("message-input");
@@ -220,7 +220,7 @@ async function prepareOutgoingText(text, scope, passphrase, forceEncrypt) {
 async function uploadFile(file) {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch("/api/upload", { method: "POST", body: form });
+  const res = await fetch(HMConnection.apiUrl("/api/upload"), { method: "POST", body: form });
   if (!res.ok) {
     const err = await res.json().catch(function () {
       return { error: "Upload failed" };
@@ -449,6 +449,9 @@ function applyDmHistory(threads) {
   }
 }
 
+function registerSocketHandlers(sock) {
+  socket = sock;
+
 socket.on("channel history", function (data) {
   applyChannelHistory(data.room, data.channel, data.messages);
 });
@@ -590,7 +593,7 @@ function updateJoinQr(url) {
     joinQrEl.hidden = true;
     return;
   }
-  joinQrEl.src = `/api/qr?url=${encodeURIComponent(url)}`;
+  joinQrEl.src = HMConnection.apiUrl(`/api/qr?url=${encodeURIComponent(url)}`);
   joinQrEl.hidden = false;
 }
 
@@ -688,7 +691,7 @@ function findDmMessage(partner, id) {
 
 async function loadJoinInfo() {
   try {
-    const response = await fetch("/api/join-info");
+    const response = await fetch(HMConnection.apiUrl("/api/join-info"));
     const data = await response.json();
 
     if (data.rooms) {
@@ -700,6 +703,13 @@ async function loadJoinInfo() {
 
     if (data.avatars) {
       renderAvatarPicker(data.avatars);
+    }
+
+    if (HMConnection.isNativeApp()) {
+      joinUrls = [HMConnection.getServerBase()];
+      joinUrlEl.textContent = `Connected to ${joinUrls[0]}`;
+      updateJoinQr(null);
+      return;
     }
 
     if (!data.urls || data.urls.length === 0) {
@@ -718,8 +728,6 @@ async function loadJoinInfo() {
     updateJoinQr(null);
   }
 }
-
-loadJoinInfo();
 
 function joinChat() {
   const name = displayNameInput.value.trim();
@@ -1074,6 +1082,20 @@ socket.on("user list", function (users) {
   }
   renderOnlineList(users);
 });
+}
+
+window.HMBootChat = async function () {
+  if (!socket) {
+    if (HMConnection.isNativeApp()) {
+      socket = HMConnection.getSocket();
+    } else {
+      await HMConnection.connectToServer(window.location.origin);
+      socket = HMConnection.getSocket();
+    }
+  }
+  HMConnection.bindHandlersOnce(registerSocketHandlers);
+  await loadJoinInfo();
+};
 
 function renderOnlineList(users) {
   onlineListEl.innerHTML = "";
@@ -1170,7 +1192,7 @@ async function appendAttachment(parent, msg, scope, passphrase) {
 
   if (msg.attachment.encrypted && msg.attachment.iv && passphrase) {
     try {
-      const res = await fetch(msg.attachment.url);
+      const res = await fetch(HMConnection.resolveAssetUrl(msg.attachment.url));
       const blob = await res.blob();
       const plain = await CryptoHelper.decryptBlob(
         blob,
@@ -1200,12 +1222,12 @@ async function appendAttachment(parent, msg, scope, passphrase) {
     }
   } else if ((msg.attachment.mime || "").startsWith("image/")) {
     const img = document.createElement("img");
-    img.src = msg.attachment.url;
+    img.src = HMConnection.resolveAssetUrl(msg.attachment.url);
     img.alt = msg.attachment.name;
     wrap.appendChild(img);
   } else {
     const link = document.createElement("a");
-    link.href = msg.attachment.url;
+    link.href = HMConnection.resolveAssetUrl(msg.attachment.url);
     link.target = "_blank";
     link.rel = "noopener";
     link.textContent = `📎 ${msg.attachment.name}`;

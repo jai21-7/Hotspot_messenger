@@ -22,6 +22,31 @@
   </head>
   <body>
     <div class="page-backdrop" aria-hidden="true"></div>
+
+    <section id="server-connect" class="server-connect" hidden aria-label="Connect to chat server">
+      <div class="server-connect-card">
+        <span class="server-connect-icon" aria-hidden="true">📡</span>
+        <h1>Connect to server</h1>
+        <p class="server-connect-hint">
+          Enter the address shown on the host computer (same Wi‑Fi or hotspot), e.g.
+          <code>http://192.168.1.5:3000</code>
+        </p>
+        <label class="sr-only" for="server-url-input">Server address</label>
+        <input
+          id="server-url-input"
+          type="url"
+          inputmode="url"
+          placeholder="http://192.168.1.5:3000"
+          autocomplete="off"
+        />
+        <p id="server-connect-error" class="server-connect-error" hidden></p>
+        <div class="server-connect-actions">
+          <button type="button" id="server-connect-btn" class="server-connect-primary">Connect</button>
+          <button type="button" id="scan-qr-btn" class="server-connect-secondary">Scan QR</button>
+        </div>
+      </div>
+    </section>
+
     <div class="app">
       <header class="app-header">
         <div class="header-top">
@@ -254,10 +279,12 @@
         </div>
       </form>
     </div>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="vendor/socket.io.min.js"></script>
+    <script src="connection.js"></script>
     <script src="crypto.js"></script>
     <script src="themes.js"></script>
     <script src="pwa.js"></script>
     <script src="app.js"></script>
+    <script src="native.js"></script>
   </body>
 </html>
