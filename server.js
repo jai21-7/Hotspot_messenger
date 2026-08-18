@@ -2,7 +2,10 @@ const express = require("express");
 const http = require("http");
 const os = require("os");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const QRCode = require("qrcode");
+const multer = require("multer");
 const { Server } = require("socket.io");
 const history = require("./history");
 
@@ -11,12 +14,46 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
 
-// socket.id -> display name
+const DATA_DIR = path.join(__dirname, "data");
+const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "application/zip",
+]);
+
 const users = new Map();
-// display name -> avatar emoji
 const userAvatars = new Map();
+const socketRooms = new Map();
 
 const AVATAR_OPTIONS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙", "🦄", "🐲", "🎮", "⚡", "🌟"];
+
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: function (req, file, cb) {
+      const ext = path.extname(file.originalname).slice(0, 12);
+      cb(null, `${crypto.randomUUID()}${ext}`);
+    },
+  }),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: function (req, file, cb) {
+    if (ALLOWED_MIME.has(file.mimetype) || file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("File type not allowed"));
+    }
+  },
+});
 
 function getOnlineUsers() {
   const names = Array.from(users.values());
@@ -70,7 +107,51 @@ function isValidAvatar(avatar) {
   return AVATAR_OPTIONS.includes(avatar);
 }
 
+function socketChannel(socket) {
+  return socketRooms.get(socket.id) || { room: "main", channel: "general" };
+}
+
+function ioRoom(room, channel) {
+  return history.channelKey(room, channel);
+}
+
+function emitToChannel(room, channel, event, payload) {
+  io.to(ioRoom(room, channel)).emit(event, payload);
+}
+
+function messagePayload(entry, room, channel) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    text: entry.text,
+    time: entry.time,
+    edited: Boolean(entry.edited),
+    encrypted: Boolean(entry.encrypted),
+    ciphertext: entry.ciphertext || null,
+    iv: entry.iv || null,
+    attachment: entry.attachment || null,
+    room,
+    channel,
+  };
+}
+
+function dmPayload(entry) {
+  return {
+    id: entry.id,
+    from: entry.from,
+    to: entry.to,
+    text: entry.text,
+    time: entry.time,
+    edited: Boolean(entry.edited),
+    encrypted: Boolean(entry.encrypted),
+    ciphertext: entry.ciphertext || null,
+    iv: entry.iv || null,
+    attachment: entry.attachment || null,
+  };
+}
+
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 app.get("/api/join-info", (req, res) => {
   const addresses = getLanAddresses();
@@ -78,6 +159,8 @@ app.get("/api/join-info", (req, res) => {
     port: PORT,
     urls: addresses.map((ip) => `http://${ip}:${PORT}`),
     avatars: AVATAR_OPTIONS,
+    rooms: history.getRooms(),
+    maxFileSize: MAX_FILE_SIZE,
   });
 });
 
@@ -94,10 +177,34 @@ app.get("/api/qr", async (req, res) => {
   }
 });
 
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  res.json({
+    fileId: req.file.filename,
+    name: req.file.originalname,
+    mime: req.file.mimetype,
+    size: req.file.size,
+    url: `/uploads/${req.file.filename}`,
+  });
+});
+
+app.use(function (error, req, res, next) {
+  if (error instanceof multer.MulterError) {
+    return res.status(400).json({ error: error.message });
+  }
+  if (error) {
+    return res.status(400).json({ error: error.message || "Upload failed" });
+  }
+  next();
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
   socket.emit("user list", getOnlineUsers());
+  socket.emit("rooms list", history.getRooms());
 
   socket.on("join", (rawPayload) => {
     const { name: rawName, avatar: rawAvatar } = parseJoinPayload(rawPayload);
@@ -112,53 +219,124 @@ io.on("connection", (socket) => {
     users.set(socket.id, name);
     userAvatars.set(name, avatar);
 
+    if (!socketRooms.has(socket.id)) {
+      socketRooms.set(socket.id, { room: "main", channel: "general" });
+      socket.join(ioRoom("main", "general"));
+    }
+
+    const { room, channel } = socketChannel(socket);
+    socket.join(ioRoom(room, channel));
+
     io.emit("user list", getOnlineUsers());
 
-    socket.emit("chat history", { messages: history.getGroupMessages() });
+    socket.emit("channel history", {
+      room,
+      channel,
+      messages: history.getChannelMessages(room, channel),
+    });
     socket.emit("dm history", { threads: history.getDmThreadsForUser(name) });
 
     if (isNew) {
-      const joinText = `${avatar} ${name} joined the chat`;
-      history.addGroupSystem(joinText);
-      io.emit("system message", joinText);
+      const joinText = `${avatar} ${name} joined ${room} / #${channel}`;
+      history.addChannelSystem(room, channel, joinText);
+      emitToChannel(room, channel, "channel message", {
+        type: "system",
+        text: joinText,
+        room,
+        channel,
+      });
     }
+  });
+
+  socket.on("join channel", (data) => {
+    const name = users.get(socket.id);
+    if (!name || !data) {
+      return;
+    }
+
+    const room = typeof data.room === "string" ? data.room.trim().slice(0, 24) : "main";
+    const channel = typeof data.channel === "string" ? data.channel.trim().slice(0, 24) : "general";
+    const rooms = history.getRooms();
+    if (!rooms[room] || !rooms[room].channels.includes(channel)) {
+      return;
+    }
+
+    const prev = socketChannel(socket);
+    socket.leave(ioRoom(prev.room, prev.channel));
+
+    socketRooms.set(socket.id, { room, channel });
+    socket.join(ioRoom(room, channel));
+
+    socket.emit("channel history", {
+      room,
+      channel,
+      messages: history.getChannelMessages(room, channel),
+    });
+    socket.emit("channel joined", { room, channel, encrypted: Boolean(rooms[room].encrypted) });
+  });
+
+  socket.on("create room", (data) => {
+    const name = users.get(socket.id);
+    if (!name || !data || typeof data.roomId !== "string") {
+      return;
+    }
+    const created = history.createRoom(data.roomId, data.name || data.roomId, Boolean(data.encrypted));
+    if (!created) {
+      socket.emit("room error", { message: "Could not create room (id may already exist)." });
+      return;
+    }
+    io.emit("rooms list", history.getRooms());
+  });
+
+  socket.on("create channel", (data) => {
+    const name = users.get(socket.id);
+    if (!name || !data || typeof data.room !== "string" || typeof data.channel !== "string") {
+      return;
+    }
+    const ch = history.createChannel(data.room, data.channel);
+    if (!ch) {
+      socket.emit("room error", { message: "Could not create channel." });
+      return;
+    }
+    io.emit("rooms list", history.getRooms());
   });
 
   socket.on("chat message", (data) => {
     const name = users.get(socket.id);
-    if (!name || !data || typeof data.text !== "string") {
+    if (!name || !data) {
       return;
     }
 
-    const text = data.text.trim().slice(0, 500);
-    if (!text) {
+    const { room, channel } = socketChannel(socket);
+    const hasText = typeof data.text === "string" && data.text.trim();
+    const hasEncrypted = data.encrypted && data.ciphertext && data.iv;
+    if (!hasText && !hasEncrypted && !data.attachment) {
       return;
     }
 
-    const entry = history.addGroupChat({
+    const entry = history.addChannelChat(room, channel, {
       name,
-      text,
+      text: hasText ? data.text.trim().slice(0, 500) : "",
       time: new Date().toISOString(),
+      encrypted: Boolean(data.encrypted),
+      ciphertext: data.ciphertext || null,
+      iv: data.iv || null,
+      attachment: data.attachment || null,
     });
 
-    io.emit("chat message", {
-      id: entry.id,
-      name: entry.name,
-      text: entry.text,
-      time: entry.time,
-      edited: false,
-    });
+    emitToChannel(room, channel, "chat message", messagePayload(entry, room, channel));
   });
 
   socket.on("dm message", (data) => {
     const from = users.get(socket.id);
-    if (!from || !data || typeof data.to !== "string" || typeof data.text !== "string") {
+    if (!from || !data) {
       return;
     }
 
-    const to = data.to.trim().slice(0, 24);
-    const text = data.text.trim().slice(0, 500);
-    if (!to || !text) {
+    const to = typeof data.to === "string" ? data.to.trim().slice(0, 24) : "";
+    const hasText = typeof data.text === "string" && data.text.trim();
+    const hasEncrypted = data.encrypted && data.ciphertext && data.iv;
+    if (!to || (!hasText && !hasEncrypted && !data.attachment)) {
       return;
     }
 
@@ -176,19 +354,15 @@ io.on("connection", (socket) => {
     const entry = history.addDmMessage({
       from,
       to,
-      text,
+      text: hasText ? data.text.trim().slice(0, 500) : "",
       time: new Date().toISOString(),
+      encrypted: Boolean(data.encrypted),
+      ciphertext: data.ciphertext || null,
+      iv: data.iv || null,
+      attachment: data.attachment || null,
     });
 
-    const payload = {
-      id: entry.id,
-      from: entry.from,
-      to: entry.to,
-      text: entry.text,
-      time: entry.time,
-      edited: false,
-    };
-
+    const payload = dmPayload(entry);
     socket.emit("dm message", payload);
     for (const id of recipientIds) {
       if (id !== socket.id) {
@@ -199,31 +373,28 @@ io.on("connection", (socket) => {
 
   socket.on("edit message", (data) => {
     const name = users.get(socket.id);
-    if (!name || !data || typeof data.id !== "string" || typeof data.text !== "string") {
-      return;
-    }
-
-    const text = data.text.trim().slice(0, 500);
-    if (!text) {
+    if (!name || !data || typeof data.id !== "string") {
       return;
     }
 
     const dmTo = data.dmTo ? data.dmTo.trim().slice(0, 24) : null;
+    const updates = {};
+    if (data.encrypted) {
+      updates.encrypted = true;
+      updates.ciphertext = data.ciphertext;
+      updates.iv = data.iv;
+      updates.text = "";
+    } else if (typeof data.text === "string") {
+      updates.text = data.text.trim().slice(0, 500);
+      updates.encrypted = false;
+    }
 
     if (dmTo) {
-      const updated = history.editDmMessage(data.id, name, text);
+      const updated = history.editDmMessage(data.id, name, updates);
       if (!updated) {
         return;
       }
-      const payload = {
-        id: updated.id,
-        from: updated.from,
-        to: updated.to,
-        text: updated.text,
-        time: updated.time,
-        edited: true,
-        dm: true,
-      };
+      const payload = { ...dmPayload(updated), edited: true, dm: true };
       const recipientIds = getSocketIdsByName(updated.to);
       socket.emit("message updated", payload);
       for (const id of recipientIds) {
@@ -234,16 +405,14 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const updated = history.editGroupMessage(data.id, name, text);
+    const { room, channel } = socketChannel(socket);
+    const updated = history.editChannelMessage(room, channel, data.id, name, updates);
     if (!updated) {
       return;
     }
 
-    io.emit("message updated", {
-      id: updated.id,
-      name: updated.name,
-      text: updated.text,
-      time: updated.time,
+    emitToChannel(room, channel, "message updated", {
+      ...messagePayload(updated, room, channel),
       edited: true,
     });
   });
@@ -272,12 +441,13 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const removed = history.deleteGroupMessage(data.id, name);
+    const { room, channel } = socketChannel(socket);
+    const removed = history.deleteChannelMessage(room, channel, data.id, name);
     if (!removed) {
       return;
     }
 
-    io.emit("message deleted", { id: removed.id });
+    emitToChannel(room, channel, "message deleted", { id: removed.id, room, channel });
   });
 
   socket.on("typing", (data) => {
@@ -297,14 +467,17 @@ io.on("connection", (socket) => {
       return;
     }
 
-    socket.broadcast.emit("typing", { name, typing: isTyping });
+    const { room, channel } = socketChannel(socket);
+    socket.to(ioRoom(room, channel)).emit("typing", { name, typing: isTyping, room, channel });
   });
 
   socket.on("disconnect", () => {
     const name = users.get(socket.id);
     if (name) {
       const avatar = userAvatars.get(name) || "😀";
+      const { room, channel } = socketChannel(socket);
       users.delete(socket.id);
+      socketRooms.delete(socket.id);
       const stillOnline = getSocketIdsByName(name).length > 0;
       if (!stillOnline) {
         userAvatars.delete(name);
@@ -312,8 +485,13 @@ io.on("connection", (socket) => {
       io.emit("user list", getOnlineUsers());
 
       const leaveText = `${avatar} ${name} left the chat`;
-      history.addGroupSystem(leaveText);
-      io.emit("system message", leaveText);
+      history.addChannelSystem(room, channel, leaveText);
+      emitToChannel(room, channel, "channel message", {
+        type: "system",
+        text: leaveText,
+        room,
+        channel,
+      });
 
       socket.broadcast.emit("typing", { name, typing: false });
     }
