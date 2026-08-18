@@ -527,6 +527,9 @@ function updateSoundToggle() {
   soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
   soundToggle.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
   soundToggle.title = soundEnabled ? "Sound on — click to mute" : "Sound off — click to unmute";
+  if (typeof window.HMSyncSettingsSound === "function") {
+    window.HMSyncSettingsSound();
+  }
 }
 
 soundToggle.addEventListener("click", function () {
@@ -765,6 +768,9 @@ function joinChat() {
   messageInput.focus();
   if (typeof window.HMUpdateMobileChrome === "function") {
     window.HMUpdateMobileChrome();
+  }
+  if (typeof window.HMUpdateSettingsProfile === "function") {
+    window.HMUpdateSettingsProfile(myName, myAvatar);
   }
 }
 
@@ -1270,6 +1276,8 @@ async function appendAttachment(parent, msg, scope, passphrase) {
 }
 
 async function renderCurrentView() {
+  const stickToBottom =
+    messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
   messagesEl.innerHTML = "";
   let visibleCount = 0;
 
@@ -1344,7 +1352,9 @@ async function renderCurrentView() {
     }
   }
 
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  if (stickToBottom) {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 }
 
 function buildMessageActions(msg, isDm) {
