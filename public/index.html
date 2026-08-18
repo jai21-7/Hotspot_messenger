@@ -77,7 +77,7 @@
             >
               🎨
             </button>
-            <span class="live-badge" title="Realtime on your network">Live</span>
+            <span class="live-badge" id="live-badge" title="Connection status">Live</span>
           </div>
         </div>
 
@@ -212,6 +212,7 @@
             <div class="settings-actions">
               <button type="button" id="copy-server-btn" class="mini-btn">Copy server URL</button>
               <button type="button" id="share-server-btn" class="mini-btn" hidden>Share</button>
+              <button type="button" id="change-server-btn" class="mini-btn" hidden>Change server</button>
             </div>
           </div>
           <div class="settings-group">
@@ -253,6 +254,7 @@
       </div>
 
       <section class="messages" id="messages" aria-live="polite" aria-label="Messages">
+        <p id="pull-refresh-hint" class="pull-refresh-hint" hidden>Release to refresh</p>
         <div class="empty-state">
           <span class="empty-icon" aria-hidden="true">💬</span>
           <p>No messages yet</p>
@@ -314,6 +316,7 @@
         <button type="button" class="bottom-nav-btn" data-tab="dms" aria-selected="false">
           <span class="bottom-nav-icon" aria-hidden="true">💬</span>
           <span class="bottom-nav-label">DMs</span>
+          <span id="dm-nav-badge" class="nav-badge" hidden>0</span>
         </button>
         <button type="button" class="bottom-nav-btn" data-tab="settings" aria-selected="false">
           <span class="bottom-nav-icon" aria-hidden="true">⚙️</span>

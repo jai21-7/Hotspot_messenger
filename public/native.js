@@ -116,6 +116,7 @@
   }
 
   window.HMHaptic = hapticLight;
+  window.HMShowServerScreen = showServerScreen;
 
   window.HMNativeBoot = async function () {
     if (HMConnection.needsServerScreen()) {

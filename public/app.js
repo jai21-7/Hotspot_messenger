@@ -275,6 +275,9 @@ function switchChannel(room, channel) {
   socket.emit("join channel", { room, channel });
   renderRoomsUI();
   modeGroupBtn.textContent = `#${channel}`;
+  if (typeof window.HMFocusChat === "function") {
+    window.HMFocusChat();
+  }
 }
 
 roomSelectEl.addEventListener("change", function () {
@@ -760,6 +763,9 @@ function joinChat() {
   messageInput.placeholder = "Type a message...";
   joinHint.textContent = `${myAvatar} You're in as ${name}`;
   messageInput.focus();
+  if (typeof window.HMUpdateMobileChrome === "function") {
+    window.HMUpdateMobileChrome();
+  }
 }
 
 joinButton.addEventListener("click", joinChat);
@@ -815,6 +821,12 @@ function openDm(partner) {
     return;
   }
   setChatMode("dm", partner);
+  if (typeof window.HMSwitchTab === "function") {
+    window.HMSwitchTab("dms");
+  }
+  if (typeof window.HMFocusChat === "function") {
+    window.HMFocusChat();
+  }
   messageInput.focus();
 }
 
@@ -1110,6 +1122,12 @@ window.HMBootChat = async function () {
   }
 };
 
+function syncDmNavBadge() {
+  if (typeof window.HMUpdateDmBadge === "function") {
+    window.HMUpdateDmBadge(unreadDm.size);
+  }
+}
+
 function renderOnlineList(users) {
   onlineListEl.innerHTML = "";
 
@@ -1119,6 +1137,7 @@ function renderOnlineList(users) {
     empty.className = "online-empty";
     empty.textContent = "Nobody online yet";
     onlineListEl.appendChild(empty);
+    syncDmNavBadge();
     return;
   }
 
@@ -1155,6 +1174,7 @@ function renderOnlineList(users) {
     chip.appendChild(label);
     onlineListEl.appendChild(chip);
   }
+  syncDmNavBadge();
 }
 
 function formatTime(isoString) {

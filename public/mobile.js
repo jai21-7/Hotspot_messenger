@@ -2,7 +2,11 @@
 (function () {
   const statusEl = document.getElementById("connection-status");
   const statusTextEl = document.getElementById("connection-status-text");
+  const liveBadgeEl = document.getElementById("live-badge");
   const bottomNav = document.getElementById("bottom-nav");
+  const dmNavBadge = document.getElementById("dm-nav-badge");
+  const pullHint = document.getElementById("pull-refresh-hint");
+  const changeServerBtn = document.getElementById("change-server-btn");
   const tabPanels = {
     rooms: document.getElementById("tab-rooms"),
     dms: document.getElementById("tab-dms"),
@@ -11,6 +15,7 @@
   const lightbox = document.getElementById("image-lightbox");
   const lightboxImg = document.getElementById("image-lightbox-img");
   const messagesEl = document.getElementById("messages");
+  const messageInput = document.getElementById("message-input");
   const copyServerBtn = document.getElementById("copy-server-btn");
   const shareServerBtn = document.getElementById("share-server-btn");
   const serverUrlDisplay = document.getElementById("server-url-display");
@@ -21,13 +26,32 @@
     offline: "Offline — check Wi‑Fi and server",
   };
 
+  const LIVE_LABELS = {
+    connected: "Live",
+    reconnecting: "…",
+    offline: "Off",
+  };
+
+  function isMobileLayout() {
+    return HMConnection.isNativeApp() || window.matchMedia("(max-width: 640px)").matches;
+  }
+
   function updateConnectionBanner(status) {
-    if (!statusEl || !statusTextEl) {
-      return;
+    if (statusEl && statusTextEl) {
+      statusEl.hidden = status === "connected";
+      statusEl.className = "connection-status connection-status--" + status;
+      statusTextEl.textContent = STATUS_LABELS[status] || status;
     }
-    statusEl.hidden = status === "connected";
-    statusEl.className = "connection-status connection-status--" + status;
-    statusTextEl.textContent = STATUS_LABELS[status] || status;
+    if (liveBadgeEl) {
+      liveBadgeEl.textContent = LIVE_LABELS[status] || "Off";
+      liveBadgeEl.className = "live-badge live-badge--" + status;
+      liveBadgeEl.title =
+        status === "connected"
+          ? "Connected to server"
+          : status === "reconnecting"
+            ? "Reconnecting to server"
+            : "Disconnected from server";
+    }
   }
 
   function setActiveTab(tab) {
@@ -48,6 +72,41 @@
     localStorage.setItem("hm-active-tab", tab);
   }
 
+  function updateBottomNavVisibility() {
+    if (!bottomNav) {
+      return;
+    }
+    const show = document.body.classList.contains("joined") && isMobileLayout();
+    bottomNav.hidden = !show;
+    document.body.classList.toggle("has-bottom-nav", show);
+  }
+
+  function updateDmBadge(count) {
+    if (!dmNavBadge) {
+      return;
+    }
+    if (count > 0) {
+      dmNavBadge.hidden = false;
+      dmNavBadge.textContent = count > 9 ? "9+" : String(count);
+    } else {
+      dmNavBadge.hidden = true;
+    }
+  }
+
+  function focusChat() {
+    if (messagesEl) {
+      messagesEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    if (isMobileLayout()) {
+      const composer = document.getElementById("chat-form");
+      if (composer) {
+        window.setTimeout(function () {
+          composer.scrollIntoView({ behavior: "smooth", block: "end" });
+        }, 150);
+      }
+    }
+  }
+
   function initBottomNav() {
     if (!bottomNav) {
       return;
@@ -60,6 +119,9 @@
         return;
       }
       setActiveTab(btn.dataset.tab);
+      if (btn.dataset.tab === "dms") {
+        focusChat();
+      }
       if (typeof window.HMHaptic === "function") {
         window.HMHaptic();
       }
@@ -95,8 +157,14 @@
         const delta = event.touches[0].clientY - startY;
         if (delta > threshold) {
           messagesEl.classList.add("pull-ready");
+          if (pullHint) {
+            pullHint.hidden = false;
+          }
         } else {
           messagesEl.classList.remove("pull-ready");
+          if (pullHint) {
+            pullHint.hidden = true;
+          }
         }
       },
       { passive: true }
@@ -107,6 +175,9 @@
         return;
       }
       pulling = false;
+      if (pullHint) {
+        pullHint.hidden = true;
+      }
       if (messagesEl.classList.contains("pull-ready")) {
         messagesEl.classList.remove("pull-ready");
         if (typeof window.HMRefreshChat === "function") {
@@ -116,6 +187,20 @@
           window.HMHaptic();
         }
       }
+    });
+  }
+
+  function initKeyboardScroll() {
+    if (!messageInput) {
+      return;
+    }
+    messageInput.addEventListener("focus", function () {
+      if (!isMobileLayout()) {
+        return;
+      }
+      window.setTimeout(function () {
+        messageInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
     });
   }
 
@@ -166,6 +251,9 @@
     if (shareServerBtn) {
       shareServerBtn.hidden = !(navigator.share && url);
     }
+    if (changeServerBtn) {
+      changeServerBtn.hidden = !HMConnection.isNativeApp();
+    }
   }
 
   async function copyServerUrl() {
@@ -207,6 +295,13 @@
   if (shareServerBtn) {
     shareServerBtn.addEventListener("click", shareServerUrl);
   }
+  if (changeServerBtn) {
+    changeServerBtn.addEventListener("click", function () {
+      if (typeof window.HMShowServerScreen === "function") {
+        window.HMShowServerScreen();
+      }
+    });
+  }
 
   HMConnection.onStatusChange(updateConnectionBanner);
   updateConnectionBanner(HMConnection.getStatus());
@@ -215,12 +310,14 @@
     initBottomNav();
     initPullToRefresh();
     initImageLightbox();
+    initKeyboardScroll();
     updateServerSettings();
-    if (bottomNav && (HMConnection.isNativeApp() || window.matchMedia("(max-width: 640px)").matches)) {
-      bottomNav.hidden = false;
-      document.body.classList.add("has-bottom-nav");
-    }
+    updateBottomNavVisibility();
   });
 
   window.HMUpdateServerSettings = updateServerSettings;
+  window.HMSwitchTab = setActiveTab;
+  window.HMFocusChat = focusChat;
+  window.HMUpdateDmBadge = updateDmBadge;
+  window.HMUpdateMobileChrome = updateBottomNavVisibility;
 })();
