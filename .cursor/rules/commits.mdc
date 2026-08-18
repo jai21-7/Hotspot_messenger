@@ -1,0 +1,28 @@
+---
+description: Commit after each completed piece of work without waiting for the user to ask
+alwaysApply: true
+---
+
+# Git commits — proactive, small, user-only
+
+After every meaningful chunk of work (feature, fix, or polish step), **commit immediately**. Do not wait for the user to say "commit" or "push".
+
+## When to commit
+
+- After finishing a logical step (e.g. one Phase 3 feature, one file group, one bug fix)
+- Before moving to the next task in the same session
+- When the user might stop or context might end — commit first
+
+## How to commit
+
+- **Small commits** with clear messages (e.g. `feat:`, `fix:`, `style:`)
+- Use `git commit-tree` / `hash-object` on Windows if regular `git commit` adds `Co-authored-by: Cursor`
+- Never add `Co-authored-by: Cursor` — commits are credited only to **jai tripathi**
+- Git path on Windows: `C:\Program Files\Git\cmd\git.exe`
+- **Do not push** unless the user explicitly asks
+
+## Do not
+
+- Leave completed work uncommitted at end of turn
+- Batch many unrelated changes into one giant commit
+- Commit secrets (`.env`, credentials)
