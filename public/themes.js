@@ -4,10 +4,17 @@
   const root = document.documentElement;
 
   const defaults = {
-    mode: "light",
+    mode: "system",
     theme: "teal",
     wallpaper: "aurora",
   };
+
+  function resolveMode(settings) {
+    if (settings.mode !== "system") {
+      return settings.mode;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
 
   function loadSettings() {
     try {
@@ -23,9 +30,10 @@
   }
 
   function applySettings(settings) {
-    root.setAttribute("data-mode", settings.mode);
+    root.setAttribute("data-mode", resolveMode(settings));
     root.setAttribute("data-theme", settings.theme);
     root.setAttribute("data-wallpaper", settings.wallpaper);
+    root.setAttribute("data-mode-pref", settings.mode);
     saveSettings(settings);
     updateActiveButtons(settings);
   }
@@ -76,5 +84,12 @@
       const next = { ...loadSettings(), [key]: value };
       applySettings(next);
     });
+  });
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+    const settings = loadSettings();
+    if (settings.mode === "system") {
+      applySettings(settings);
+    }
   });
 })();

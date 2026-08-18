@@ -87,6 +87,7 @@
           <div class="theme-group">
             <span class="theme-label">Mode</span>
             <div class="theme-options" role="group" aria-label="Light or dark mode">
+              <button type="button" class="theme-option" data-setting="mode" data-value="system">🌓 System</button>
               <button type="button" class="theme-option" data-setting="mode" data-value="light">☀️ Light</button>
               <button type="button" class="theme-option" data-setting="mode" data-value="dark">🌙 Dark</button>
             </div>
@@ -130,6 +131,11 @@
         </div>
       </header>
 
+      <div id="connection-status" class="connection-status connection-status--offline" hidden role="status">
+        <span id="connection-status-text">Offline</span>
+      </div>
+
+      <div id="tab-rooms" class="tab-panel">
       <section class="name-section" aria-label="Your display name">
         <label for="display-name">Display name</label>
         <div class="name-row">
@@ -182,7 +188,9 @@
           </div>
         </div>
       </section>
+      </div>
 
+      <div id="tab-dms" class="tab-panel" hidden>
       <section class="online-section" aria-label="Online users">
         <div class="online-header">
           <h2 class="online-title">Online</h2>
@@ -193,6 +201,25 @@
           <span class="online-empty">Nobody online yet</span>
         </div>
       </section>
+      </div>
+
+      <div id="tab-settings" class="tab-panel" hidden>
+        <section class="settings-section" aria-label="App settings">
+          <h2 class="settings-title">Settings</h2>
+          <div class="settings-group">
+            <span class="settings-label">Server</span>
+            <p id="server-url-display" class="settings-value">Not connected</p>
+            <div class="settings-actions">
+              <button type="button" id="copy-server-btn" class="mini-btn">Copy server URL</button>
+              <button type="button" id="share-server-btn" class="mini-btn" hidden>Share</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <span class="settings-label">Appearance</span>
+            <p class="settings-hint">Use the 🎨 button in the header to change theme, colors, and wallpaper.</p>
+          </div>
+        </section>
+      </div>
 
       <div class="chat-toolbar">
         <button type="button" id="mode-group" class="chat-mode active" aria-pressed="true">
@@ -278,6 +305,26 @@
           </button>
         </div>
       </form>
+
+      <nav id="bottom-nav" class="bottom-nav" hidden aria-label="Main navigation">
+        <button type="button" class="bottom-nav-btn" data-tab="rooms" aria-selected="true">
+          <span class="bottom-nav-icon" aria-hidden="true">🏠</span>
+          <span class="bottom-nav-label">Rooms</span>
+        </button>
+        <button type="button" class="bottom-nav-btn" data-tab="dms" aria-selected="false">
+          <span class="bottom-nav-icon" aria-hidden="true">💬</span>
+          <span class="bottom-nav-label">DMs</span>
+        </button>
+        <button type="button" class="bottom-nav-btn" data-tab="settings" aria-selected="false">
+          <span class="bottom-nav-icon" aria-hidden="true">⚙️</span>
+          <span class="bottom-nav-label">Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <div id="image-lightbox" class="image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Image preview">
+      <button type="button" class="image-lightbox-close" aria-label="Close preview">✕</button>
+      <img id="image-lightbox-img" alt="" />
     </div>
     <script src="vendor/socket.io.min.js"></script>
     <script src="connection.js"></script>
@@ -286,5 +333,6 @@
     <script src="pwa.js"></script>
     <script src="app.js"></script>
     <script src="native.js"></script>
+    <script src="mobile.js"></script>
   </body>
 </html>
