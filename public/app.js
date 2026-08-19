@@ -473,6 +473,23 @@ socket.on("room error", function (data) {
   alert(data.message || "Room error.");
 });
 
+socket.on("join error", function (data) {
+  hasJoined = false;
+  myName = "";
+  document.body.classList.remove("joined");
+  displayNameInput.disabled = false;
+  joinButton.disabled = false;
+  messageInput.disabled = true;
+  sendButton.disabled = true;
+  emojiToggle.disabled = true;
+  attachBtn.disabled = true;
+  searchBarEl.hidden = true;
+  roomsSectionEl.hidden = true;
+  joinHint.textContent = "Pick an avatar, enter a name, and tap Join.";
+  alert(data.message || "Could not join.");
+  displayNameInput.focus();
+});
+
 socket.on("channel message", function (data) {
   if (data.type !== "system") {
     return;

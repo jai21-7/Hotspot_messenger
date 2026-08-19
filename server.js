@@ -8,11 +8,19 @@ const QRCode = require("qrcode");
 const multer = require("multer");
 const { Server } = require("socket.io");
 const history = require("./history");
+const { RateLimiter, isNameTaken } = require("./security");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = 3000;
+const MAX_CONNECTIONS = 100;
+
+const joinLimiter = new RateLimiter(8, 60_000);
+const chatLimiter = new RateLimiter(40, 60_000);
+const dmLimiter = new RateLimiter(30, 60_000);
+const typingLimiter = new RateLimiter(120, 60_000);
+const uploadLimiter = new RateLimiter(12, 60_000);
 
 const DATA_DIR = path.join(__dirname, "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
@@ -177,7 +185,13 @@ app.get("/api/qr", async (req, res) => {
   }
 });
 
-app.post("/api/upload", upload.single("file"), (req, res) => {
+app.post("/api/upload", function (req, res, next) {
+  const clientKey = req.ip || req.socket.remoteAddress || "unknown";
+  if (!uploadLimiter.allow(clientKey)) {
+    return res.status(429).json({ error: "Too many uploads. Wait a moment and try again." });
+  }
+  next();
+}, upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -201,15 +215,31 @@ app.use(function (error, req, res, next) {
 });
 
 io.on("connection", (socket) => {
+  if (io.engine.clientsCount > MAX_CONNECTIONS) {
+    socket.emit("join error", { message: "This chat is full. Try again in a few minutes." });
+    socket.disconnect(true);
+    return;
+  }
+
   console.log("A user connected:", socket.id);
 
   socket.emit("user list", getOnlineUsers());
   socket.emit("rooms list", history.getRooms());
 
   socket.on("join", (rawPayload) => {
+    if (!joinLimiter.allow(socket.id)) {
+      socket.emit("join error", { message: "Too many join attempts. Wait a moment and try again." });
+      return;
+    }
+
     const { name: rawName, avatar: rawAvatar } = parseJoinPayload(rawPayload);
     const name = rawName.trim().slice(0, 24);
     if (!name) {
+      return;
+    }
+
+    if (isNameTaken(users, name, socket.id)) {
+      socket.emit("join error", { message: `"${name}" is already in use. Pick another name.` });
       return;
     }
 
@@ -306,6 +336,9 @@ io.on("connection", (socket) => {
     if (!name || !data) {
       return;
     }
+    if (!chatLimiter.allow(socket.id)) {
+      return;
+    }
 
     const { room, channel } = socketChannel(socket);
     const hasText = typeof data.text === "string" && data.text.trim();
@@ -330,6 +363,9 @@ io.on("connection", (socket) => {
   socket.on("dm message", (data) => {
     const from = users.get(socket.id);
     if (!from || !data) {
+      return;
+    }
+    if (!dmLimiter.allow(socket.id)) {
       return;
     }
 
@@ -455,6 +491,9 @@ io.on("connection", (socket) => {
     if (!name) {
       return;
     }
+    if (!typingLimiter.allow(socket.id)) {
+      return;
+    }
 
     const isTyping = Boolean(data && data.typing);
     const to = data && typeof data.to === "string" ? data.to.trim().slice(0, 24) : null;
@@ -496,6 +535,10 @@ io.on("connection", (socket) => {
       socket.broadcast.emit("typing", { name, typing: false });
     }
     console.log("A user disconnected:", socket.id);
+    joinLimiter.clear(socket.id);
+    chatLimiter.clear(socket.id);
+    dmLimiter.clear(socket.id);
+    typingLimiter.clear(socket.id);
   });
 });
 
