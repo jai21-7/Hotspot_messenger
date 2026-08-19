@@ -1,6 +1,8 @@
 // Server URL + Socket.io connection (web uses same host; native app connects to LAN IP)
 const HMConnection = (function () {
   const SERVER_URL_KEY = "hm-server-url";
+  const RECENT_SERVERS_KEY = "hm-recent-servers";
+  const MAX_RECENT_SERVERS = 5;
   let socket = null;
   let serverBase = "";
   let handlersBound = false;
@@ -92,6 +94,64 @@ const HMConnection = (function () {
     localStorage.setItem(SERVER_URL_KEY, url);
   }
 
+  function getRecentServers() {
+    try {
+      const raw = localStorage.getItem(RECENT_SERVERS_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function addRecentServer(url) {
+    const base = normalizeBase(url);
+    if (!base) {
+      return;
+    }
+    let list = getRecentServers().filter(function (entry) {
+      return entry.url !== base;
+    });
+    list.unshift({ url: base, lastUsed: Date.now() });
+    if (list.length > MAX_RECENT_SERVERS) {
+      list = list.slice(0, MAX_RECENT_SERVERS);
+    }
+    localStorage.setItem(RECENT_SERVERS_KEY, JSON.stringify(list));
+  }
+
+  function removeRecentServer(url) {
+    const base = normalizeBase(url);
+    const list = getRecentServers().filter(function (entry) {
+      return entry.url !== base;
+    });
+    localStorage.setItem(RECENT_SERVERS_KEY, JSON.stringify(list));
+  }
+
+  function buildDeepLink(url) {
+    const base = normalizeBase(url);
+    if (!base) {
+      return "";
+    }
+    return "hotspot://join?url=" + encodeURIComponent(base);
+  }
+
+  function parseJoinDeepLink(raw) {
+    if (!raw || typeof raw !== "string") {
+      return "";
+    }
+    const trimmed = raw.trim();
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "hotspot:" && parsed.hostname === "join") {
+        const target = parsed.searchParams.get("url");
+        return target ? normalizeBase(target) : "";
+      }
+    } catch (error) {
+      // not a deep link
+    }
+    return normalizeBase(trimmed);
+  }
+
   function getServerBase() {
     if (serverBase) {
       return serverBase;
@@ -123,7 +183,7 @@ const HMConnection = (function () {
 
   function connectToServer(url) {
     return new Promise(function (resolve, reject) {
-      const base = normalizeBase(url);
+      const base = parseJoinDeepLink(url);
       if (!base) {
         reject(new Error("Enter a server address like http://192.168.1.5:3000"));
         return;
@@ -146,6 +206,7 @@ const HMConnection = (function () {
 
       const onConnect = function () {
         socket.off("connect_error", onError);
+        addRecentServer(base);
         resolve(socket);
       };
 
@@ -179,6 +240,11 @@ const HMConnection = (function () {
     isNativeApp,
     getSavedServerUrl,
     saveServerUrl,
+    getRecentServers,
+    addRecentServer,
+    removeRecentServer,
+    buildDeepLink,
+    parseJoinDeepLink,
     getServerBase,
     apiUrl,
     resolveAssetUrl,
