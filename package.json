@@ -4,7 +4,9 @@
   "description": "Local Wi-Fi/hotspot group chat — message nearby devices without mobile data",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix"
   },
   "keywords": [
     "chat",
