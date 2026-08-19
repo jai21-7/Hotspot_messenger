@@ -34,6 +34,8 @@ Tick these in your weekly log. Do not skip Phase 0–1.
 
 ## Phase 5 — Career
 
-- [ ] Portfolio of lab write-ups + fixes
-- [ ] Target role chosen (SOC, AppSec, or pentest-after-IT)
-- [ ] Bounty only after labs, in-scope programs only
+- [x] Portfolio started (3 remediation write-ups from own project — see [portfolio/](portfolio/))
+- [x] Target role chosen (AppSec primary, SOC backup — see [phase-5-role-paths.md](phase-5-role-paths.md))
+- [x] Bounty deferred until Phase 3 lab prerequisites met
+- [ ] 5–10 total write-ups (3/10 complete)
+- [ ] Resume finalized with cert/lab progress line
