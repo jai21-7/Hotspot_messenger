@@ -97,6 +97,8 @@ Follow these steps carefully:
 
 A legal, authorized path covering **defense**, **authorized labs**, and **AppSec** (in that order) lives in [docs/security-roadmap/README.md](docs/security-roadmap/README.md). It is study material only: no exploit how-tos. AppSec examples apply to **this** repo, which you maintain.
 
+**Current phase:** Phase 5 (Career) — portfolio, resume, and interview prep. See [docs/security-roadmap/06-phase-5-career.md](docs/security-roadmap/06-phase-5-career.md).
+
 ## License
 
 MIT
