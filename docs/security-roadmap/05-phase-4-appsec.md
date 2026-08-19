@@ -35,3 +35,5 @@ Do not live-test third-party apps without a written program.
 - [x] Threat model one real feature you built — see linked docs above
 - [x] List controls you added or would add — threat models + ASVS checklist
 - [x] No live testing of third-party apps without written authorization
+
+**Next:** [06-phase-5-career.md](06-phase-5-career.md) — turn this work into portfolio and resume evidence.
