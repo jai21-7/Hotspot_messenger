@@ -93,6 +93,10 @@ Follow these steps carefully:
 | 6 | Usernames and online users |
 | 7 | Hotspot testing guide + polish |
 
+## Cybersecurity study roadmap
+
+A legal, authorized path covering **defense**, **authorized labs**, and **AppSec** (in that order) lives in [docs/security-roadmap/README.md](docs/security-roadmap/README.md). It is study material only: no exploit how-tos. AppSec examples apply to **this** repo, which you maintain.
+
 ## License
 
 MIT
