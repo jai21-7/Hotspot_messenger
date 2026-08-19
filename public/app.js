@@ -58,6 +58,7 @@ let activeChannel = "general";
 let activeDmPartner = null;
 let lastDmPartner = null;
 let joinUrls = [];
+let joinDeepLink = "";
 let maxFileSize = 5 * 1024 * 1024;
 let searchQuery = "";
 let soundEnabled = localStorage.getItem(SOUND_KEY) !== "false";
@@ -585,7 +586,7 @@ async function copyJoinLink() {
     alert("No join link available yet. Connect to Wi‑Fi and refresh.");
     return;
   }
-  const text = joinUrls[0];
+  const text = joinDeepLink || joinUrls[0];
   try {
     await navigator.clipboard.writeText(text);
     copyJoinBtn.textContent = "Copied!";
@@ -733,7 +734,8 @@ async function loadJoinInfo() {
     }
 
     joinUrls = data.urls;
-    joinUrlEl.textContent = data.urls.join("  ·  ");
+    joinDeepLink = data.deepLink || HMConnection.buildDeepLink(data.urls[0]);
+    joinUrlEl.textContent = data.urls.join("  ·  ") + "\nApp link: " + joinDeepLink;
     updateJoinQr(data.urls[0]);
   } catch (error) {
     joinUrlEl.textContent = "Use the host IP shown in the terminal.";

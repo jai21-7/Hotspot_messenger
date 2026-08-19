@@ -483,6 +483,70 @@ body {
   color: var(--ink);
 }
 
+.recent-servers-wrap,
+.found-servers-wrap {
+  margin-bottom: 0.85rem;
+  text-align: left;
+}
+
+.recent-servers-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.recent-servers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recent-server-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.recent-server-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-server-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.recent-server-url {
+  font-size: 0.78rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.recent-server-remove {
+  flex: 0 0 auto;
+  width: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
 .join-url-card {
   margin-top: 0.85rem;
   padding: 0.65rem 0.8rem;
@@ -529,6 +593,7 @@ body {
   line-height: 1.45;
   color: var(--accent-text);
   word-break: break-all;
+  white-space: pre-line;
 }
 
 .join-url-body {

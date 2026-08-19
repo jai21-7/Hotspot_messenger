@@ -46,8 +46,17 @@
           autocomplete="off"
         />
         <p id="server-connect-error" class="server-connect-error" hidden></p>
+        <div id="recent-servers-wrap" class="recent-servers-wrap" hidden>
+          <p class="recent-servers-label">Recent servers</p>
+          <div id="recent-servers-list" class="recent-servers-list"></div>
+        </div>
+        <div id="found-servers-wrap" class="found-servers-wrap" hidden>
+          <p class="recent-servers-label">Found on network</p>
+          <div id="found-servers-list" class="recent-servers-list"></div>
+        </div>
         <div class="server-connect-actions">
           <button type="button" id="server-connect-btn" class="server-connect-primary">Connect</button>
+          <button type="button" id="find-servers-btn" class="server-connect-secondary">Find on network</button>
           <button type="button" id="scan-qr-btn" class="server-connect-secondary">Scan QR</button>
         </div>
       </div>
@@ -347,6 +356,7 @@
     </div>
     <script src="vendor/socket.io.min.js"></script>
     <script src="connection.js"></script>
+    <script src="discovery.js"></script>
     <script src="crypto.js"></script>
     <script src="themes.js"></script>
     <script src="pwa.js"></script>

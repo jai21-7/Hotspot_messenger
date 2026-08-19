@@ -336,8 +336,13 @@
     if (!url || !navigator.share) {
       return;
     }
+    const deepLink = HMConnection.buildDeepLink(url);
     try {
-      await navigator.share({ title: "Hotspot Messenger", text: "Join our chat:", url });
+      await navigator.share({
+        title: "Hotspot Messenger",
+        text: "Join our chat:\n" + url + "\n" + deepLink,
+        url: deepLink,
+      });
     } catch (error) {
       if (!String(error).includes("cancel")) {
         copyServerUrl();
