@@ -21,7 +21,7 @@ Overlap is allowed at the edges (keep using the home lab while you start Securit
 | 2 Defense / SOC / IR | Months 7–11 | [03-phase-2-defense.md](03-phase-2-defense.md) |
 | 3 Authorized pentest labs | Months 11–16 | [04-phase-3-authorized-labs.md](04-phase-3-authorized-labs.md) |
 | 4 AppSec | Months 16–20 | [05-phase-4-appsec.md](05-phase-4-appsec.md) |
-| 5 Career | After month 12 | [06-phase-5-career.md](06-phase-5-career.md) |
+| 5 Career | After month 12 | [06-phase-5-career.md](06-phase-5-career.md) · **[portfolio](portfolio/)** · [weekly log](phase-5-weekly-log-01.md) |
 | Checkpoints | All phases | [CHECKPOINTS.md](CHECKPOINTS.md) |
 
 ## Templates and practice
@@ -31,6 +31,8 @@ Overlap is allowed at the edges (keep using the home lab while you start Securit
 - Weekly log: [templates/weekly-log.md](templates/weekly-log.md)
 - Threat model: [templates/threat-model.md](templates/threat-model.md)
 - Phase 0 Python checkpoint: [practice/](practice/)
+- Resume bullets: [templates/resume-bullets.md](templates/resume-bullets.md)
+- Phase 5 portfolio: [portfolio/](portfolio/)
 - Example AppSec on **this** repo: [hotspot-messenger-threat-model.md](hotspot-messenger-threat-model.md)
 
 ## Why this order
