@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const QRCode = require("qrcode");
 const multer = require("multer");
 const { Server } = require("socket.io");
+const { Bonjour } = require("bonjour-service");
 const history = require("./history");
 
 const app = express();
@@ -153,11 +154,33 @@ function dmPayload(entry) {
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(UPLOAD_DIR));
 
+function getJoinUrls() {
+  return getLanAddresses().map((ip) => `http://${ip}:${PORT}`);
+}
+
+function buildDeepLink(url) {
+  return `hotspot://join?url=${encodeURIComponent(url)}`;
+}
+
+app.get("/api/discover", (req, res) => {
+  const urls = getJoinUrls();
+  const primary = urls[0] || `http://localhost:${PORT}`;
+  res.json({
+    service: "hotspot-messenger",
+    name: "Hotspot Messenger",
+    port: PORT,
+    urls,
+    deepLink: buildDeepLink(primary),
+  });
+});
+
 app.get("/api/join-info", (req, res) => {
-  const addresses = getLanAddresses();
+  const urls = getJoinUrls();
+  const primary = urls[0] || `http://localhost:${PORT}`;
   res.json({
     port: PORT,
-    urls: addresses.map((ip) => `http://${ip}:${PORT}`),
+    urls,
+    deepLink: buildDeepLink(primary),
     avatars: AVATAR_OPTIONS,
     rooms: history.getRooms(),
     maxFileSize: MAX_FILE_SIZE,
@@ -499,6 +522,40 @@ io.on("connection", (socket) => {
   });
 });
 
+let bonjour = null;
+
+function startMdns() {
+  try {
+    bonjour = new Bonjour();
+    bonjour.publish({
+      name: "Hotspot Messenger",
+      type: "hotspot-messenger",
+      port: PORT,
+      txt: { path: "/", app: "hotspot-messenger" },
+    });
+    console.log(`mDNS: advertising _hotspot-messenger._tcp.local on port ${PORT}`);
+  } catch (error) {
+    console.warn("mDNS advertisement failed:", error.message);
+  }
+}
+
+function stopMdns() {
+  if (bonjour) {
+    bonjour.destroy();
+    bonjour = null;
+  }
+}
+
+process.on("SIGINT", function () {
+  stopMdns();
+  process.exit(0);
+});
+
+process.on("SIGTERM", function () {
+  stopMdns();
+  process.exit(0);
+});
+
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Hotspot Messenger running at http://localhost:${PORT}`);
 
@@ -511,4 +568,6 @@ server.listen(PORT, "0.0.0.0", () => {
       console.log(`  http://${ip}:${PORT}`);
     }
   }
+
+  startMdns();
 });
