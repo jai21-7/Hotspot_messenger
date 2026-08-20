@@ -153,6 +153,7 @@ function dmPayload(entry) {
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(UPLOAD_DIR));
+app.use("/docs", express.static(path.join(__dirname, "docs")));
 
 function getJoinUrls() {
   return getLanAddresses().map((ip) => `http://${ip}:${PORT}`);
