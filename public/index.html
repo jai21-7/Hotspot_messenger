@@ -244,6 +244,35 @@
             </div>
           </div>
           <div class="settings-group">
+            <span class="settings-label">Host on phone</span>
+            <p class="settings-hint">Run the server on Android with Termux — no laptop needed.</p>
+            <button type="button" id="open-host-guide-btn" class="mini-btn">How to host on phone</button>
+            <div id="host-guide-panel" class="host-guide-panel" hidden>
+              <ol class="host-steps">
+                <li>Install <strong>Termux</strong> from F-Droid</li>
+                <li>Paste the setup command below in Termux</li>
+                <li>Run <code>npm start</code> and share the join URL</li>
+              </ol>
+              <div class="host-cmd-row">
+                <code class="host-cmd" id="termux-setup-cmd">pkg install -y nodejs git …</code>
+                <button type="button" id="copy-termux-setup-btn" class="mini-btn">Copy setup command</button>
+              </div>
+              <div class="host-cmd-row">
+                <code class="host-cmd">cd Hotspot_messenger && npm start</code>
+                <button type="button" id="copy-termux-start-btn" class="mini-btn">Copy start command</button>
+              </div>
+              <p class="settings-hint">Full guide: <code>docs/TERMUX-HOST.md</code> in the repo.</p>
+            </div>
+            <div id="host-mode-panel" class="host-mode-panel" hidden>
+              <p id="host-status-text" class="host-status">Hosting…</p>
+              <p class="settings-label">Friends join at</p>
+              <ul id="host-urls-list" class="host-urls-list"></ul>
+              <img id="host-qr" class="host-qr" alt="QR code for friends to join" hidden />
+              <p class="settings-label">Tips</p>
+              <ul id="host-tips-list" class="host-tips-list"></ul>
+            </div>
+          </div>
+          <div class="settings-group">
             <span class="settings-label">Appearance</span>
             <p class="settings-hint">Customize theme, colors, and wallpaper.</p>
             <button type="button" id="open-theme-btn" class="mini-btn">Open appearance</button>
@@ -362,6 +391,7 @@
     <script src="connection.js"></script>
     <script src="notifications.js"></script>
     <script src="discovery.js"></script>
+    <script src="host.js"></script>
     <script src="crypto.js"></script>
     <script src="themes.js"></script>
     <script src="pwa.js"></script>
