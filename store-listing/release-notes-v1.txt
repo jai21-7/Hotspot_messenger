@@ -1,0 +1,4 @@
+Initial Play Store release:
+• Local Wi‑Fi / hotspot group chat
+• Private DMs, rooms, and file sharing
+• QR join, server discovery, and notifications

@@ -1,0 +1,25 @@
+Hotspot Messenger lets you chat with people nearby on the same Wi‑Fi or mobile hotspot — no internet or mobile data required.
+
+<b>Perfect for:</b>
+• Study groups at school or library
+• Events, camps, and meetups
+• Travel when you only have a local hotspot
+• Any place where everyone shares one network
+
+<b>Features:</b>
+• Real-time group chat and private DMs
+• Rooms and channels
+• Share photos and files
+• QR code to join quickly
+• Scan or save server addresses
+• Dark mode and mobile-friendly design
+• Optional message encryption with a passphrase
+
+<b>How it works:</b>
+One device runs the chat server (laptop or Android with Termux). Everyone else opens the app, enters the local address or scans a QR code, picks a name, and starts chatting. All messages stay on your local network.
+
+<b>Privacy:</b>
+No cloud account. No ads. Your chats stay on the host device on your LAN. See our privacy policy in the app.
+
+<b>Note:</b>
+You need to be on the same Wi‑Fi or hotspot as the host. This is not an internet messaging app like WhatsApp.
