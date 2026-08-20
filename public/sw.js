@@ -1,5 +1,5 @@
 // Service worker — caches the app shell so the UI loads fast (and partly offline)
-const CACHE_NAME = "hotspot-messenger-v8";
+const CACHE_NAME = "hotspot-messenger-v9";
 const SHELL = [
   "/",
   "/index.html",
@@ -9,6 +9,7 @@ const SHELL = [
   "/notifications.js",
   "/discovery.js",
   "/host.js",
+  "/privacy.html",
   "/native.js",
   "/mobile.js",
   "/crypto.js",

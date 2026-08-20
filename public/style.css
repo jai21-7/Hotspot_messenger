@@ -1674,6 +1674,12 @@ body {
   color: var(--muted);
 }
 
+.settings-link-btn {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
 .settings-actions {
   display: flex;
   gap: 0.5rem;

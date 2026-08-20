@@ -94,6 +94,12 @@ See **[docs/TERMUX-HOST.md](docs/TERMUX-HOST.md)** for the full guide (hotspot m
 
 In the app, open **Settings → How to host on phone** for copy-paste commands.
 
+## Play Store release
+
+See **[docs/PLAY-STORE.md](docs/PLAY-STORE.md)** for signing, building the AAB, and publishing to Google Play.
+
+Privacy policy: **[docs/PRIVACY-POLICY.md](docs/PRIVACY-POLICY.md)** (also at `/privacy.html` when the server is running).
+
 ## Learning path
 
 | Step | What you learn |
