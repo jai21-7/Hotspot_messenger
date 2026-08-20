@@ -126,6 +126,10 @@
     if (openHostGuideBtn) {
       openHostGuideBtn.addEventListener("click", toggleHostGuide);
     }
+    const setupCmdEl = document.getElementById("termux-setup-cmd");
+    if (setupCmdEl) {
+      setupCmdEl.textContent = TERMUX_SETUP_CMD;
+    }
     if (copyTermuxSetupBtn) {
       copyTermuxSetupBtn.addEventListener("click", function () {
         copyText(TERMUX_SETUP_CMD, copyTermuxSetupBtn, "Copy setup command");
@@ -135,10 +139,6 @@
       copyTermuxStartBtn.addEventListener("click", function () {
         copyText(TERMUX_START_CMD, copyTermuxStartBtn, "Copy start command");
       });
-    }
-
-    if (HMConnection.isNativeApp() && hostGuidePanel) {
-      hostGuidePanel.hidden = false;
     }
 
     if (isRunningAsHost()) {
