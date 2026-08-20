@@ -1689,6 +1689,74 @@ body {
   text-align: left;
 }
 
+.host-guide-panel,
+.host-mode-panel {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.host-steps {
+  margin: 0 0 0.75rem;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.host-cmd-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.host-cmd {
+  display: block;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: var(--accent-text);
+}
+
+.host-status {
+  margin: 0 0 0.65rem;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.host-urls-list,
+.host-tips-list {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.host-urls-list li {
+  margin-bottom: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.host-copy-btn {
+  flex-shrink: 0;
+}
+
+.host-qr {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.75rem;
+}
+
 .bottom-nav {
   display: flex;
   border-top: 1px solid var(--border);
