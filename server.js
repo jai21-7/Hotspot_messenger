@@ -162,6 +162,44 @@ function buildDeepLink(url) {
   return `hotspot://join?url=${encodeURIComponent(url)}`;
 }
 
+function detectHostPlatform() {
+  if (process.env.TERMUX_VERSION) {
+    return "termux";
+  }
+  return process.platform;
+}
+
+function getHostTips(platform) {
+  const tips = [
+    "Keep the terminal open while friends are chatting.",
+    "Share the join URL or QR code with people on the same Wi‑Fi or hotspot.",
+  ];
+  if (platform === "termux") {
+    tips.push("On Android: use termux-wake-lock so the server does not sleep.");
+    tips.push("Run bash scripts/termux-setup.sh for a quick Termux install.");
+  }
+  if (platform === "win32") {
+    tips.push("Allow Node.js through Windows Firewall if phones cannot connect.");
+  }
+  return tips;
+}
+
+app.get("/api/host-info", (req, res) => {
+  const urls = getJoinUrls();
+  const primary = urls[0] || `http://localhost:${PORT}`;
+  const platform = detectHostPlatform();
+  res.json({
+    isHost: true,
+    platform,
+    isTermux: platform === "termux",
+    port: PORT,
+    urls,
+    deepLink: buildDeepLink(primary),
+    tips: getHostTips(platform),
+    termuxGuide: "/docs/TERMUX-HOST.md",
+  });
+});
+
 app.get("/api/discover", (req, res) => {
   const urls = getJoinUrls();
   const primary = urls[0] || `http://localhost:${PORT}`;
