@@ -8,7 +8,8 @@
     "vendor:copy": "node scripts/copy-vendor.js",
     "postinstall": "node scripts/copy-vendor.js",
     "cap:sync": "npx cap sync",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "android:release": "powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1"
   },
   "keywords": [
     "chat",
