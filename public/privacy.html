@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — Hotspot Messenger</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .privacy-page {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 1.5rem 1.25rem 3rem;
+        color: var(--ink);
+      }
+      .privacy-page h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.35rem;
+      }
+      .privacy-page .updated {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin: 0 0 1.25rem;
+      }
+      .privacy-page h2 {
+        font-size: 1.05rem;
+        margin: 1.25rem 0 0.5rem;
+      }
+      .privacy-page p,
+      .privacy-page li {
+        line-height: 1.55;
+        font-size: 0.92rem;
+      }
+      .privacy-page table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        margin: 0.5rem 0 1rem;
+      }
+      .privacy-page th,
+      .privacy-page td {
+        border: 1px solid var(--border);
+        padding: 0.45rem 0.55rem;
+        text-align: left;
+      }
+      .privacy-back {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: var(--accent-text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-backdrop" aria-hidden="true"></div>
+    <main class="privacy-page">
+      <a class="privacy-back" href="/">← Back to app</a>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: August 20, 2026</p>
+
+      <p>
+        Hotspot Messenger is a <strong>local network chat app</strong>. Messages stay on your Wi‑Fi or
+        hotspot. We do not run a cloud server and do not collect your chats on our servers.
+      </p>
+
+      <h2>Data on your device</h2>
+      <ul>
+        <li>Display name and avatar you choose</li>
+        <li>Saved server URL and app settings (notifications, theme)</li>
+      </ul>
+
+      <h2>Data on the host server</h2>
+      <p>
+        Whoever runs the server (a laptop or phone with Termux) stores chat history and uploaded files
+        locally in the project <code>data/</code> folder.
+      </p>
+
+      <h2>What we do not do</h2>
+      <ul>
+        <li>No ads or analytics SDKs</li>
+        <li>No selling or sharing of your data</li>
+        <li>No cloud account required</li>
+      </ul>
+
+      <h2>Android permissions</h2>
+      <table>
+        <thead>
+          <tr><th>Permission</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Internet</td><td>Connect to the LAN chat server</td></tr>
+          <tr><td>Camera</td><td>Scan QR codes to join</td></tr>
+          <tr><td>Notifications</td><td>New message alerts</td></tr>
+          <tr><td>Vibrate</td><td>Optional vibration</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Contact</h2>
+      <p>
+        jai tripathi — <a href="mailto:tripathijai05@gmail.com">tripathijai05@gmail.com</a>
+      </p>
+    </main>
+  </body>
+</html>
