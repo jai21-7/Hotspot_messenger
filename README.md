@@ -81,6 +81,19 @@ Follow these steps carefully:
 | Wrong IP shown | Restart `npm start` after connecting to the hotspot |
 | Page loads but chat fails | Hard refresh the page; confirm Socket.io script loads |
 
+## Host on your Android phone (Termux)
+
+You can run the server **on your phone** instead of a laptop. Friends join the same way.
+
+1. Install [Termux](https://f-droid.org/en/packages/com.termux/) from F-Droid
+2. Run the setup script: `bash scripts/termux-setup.sh`
+3. Start the server: `npm start`
+4. Share the URL shown in the terminal
+
+See **[docs/TERMUX-HOST.md](docs/TERMUX-HOST.md)** for the full guide (hotspot mode, tmux, wake lock).
+
+In the app, open **Settings → How to host on phone** for copy-paste commands.
+
 ## Learning path
 
 | Step | What you learn |
