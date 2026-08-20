@@ -25,6 +25,8 @@
   const settingsProfile = document.getElementById("settings-profile");
   const settingsProfileDisplay = document.getElementById("settings-profile-display");
   const settingsSoundBtn = document.getElementById("settings-sound-btn");
+  const settingsNotifyBtn = document.getElementById("settings-notify-btn");
+  const settingsVibrateBtn = document.getElementById("settings-vibrate-btn");
   const openThemeBtn = document.getElementById("open-theme-btn");
   const themeToggle = document.getElementById("theme-toggle");
   const themePanel = document.getElementById("theme-panel");
@@ -135,6 +137,20 @@
     }
     const on = soundToggle.getAttribute("aria-pressed") === "true";
     settingsSoundBtn.textContent = on ? "🔊 Sound on" : "🔇 Sound off";
+  }
+
+  function syncNotificationSettings() {
+    if (settingsNotifyBtn && typeof HMNotifications !== "undefined") {
+      settingsNotifyBtn.textContent = HMNotifications.isNotifyEnabled()
+        ? "🔔 Alerts on"
+        : "🔕 Alerts off";
+    }
+    if (settingsVibrateBtn && typeof HMNotifications !== "undefined") {
+      settingsVibrateBtn.textContent = HMNotifications.isVibrateEnabled()
+        ? "📳 Vibration on"
+        : "📳 Vibration off";
+    }
+    syncSettingsSoundBtn();
   }
 
   function updateDmBadge(count) {
@@ -369,8 +385,35 @@
       const soundToggle = document.getElementById("sound-toggle");
       if (soundToggle) {
         soundToggle.click();
-        syncSettingsSoundBtn();
+        syncNotificationSettings();
       }
+    });
+  }
+
+  if (settingsNotifyBtn) {
+    settingsNotifyBtn.addEventListener("click", async function () {
+      if (typeof HMNotifications === "undefined") {
+        return;
+      }
+      const next = !HMNotifications.isNotifyEnabled();
+      HMNotifications.setNotifyEnabled(next);
+      if (next) {
+        const granted = await HMNotifications.requestPermission();
+        if (!granted) {
+          alert("Notifications are blocked. Enable them in your phone or browser settings.");
+        }
+      }
+      syncNotificationSettings();
+    });
+  }
+
+  if (settingsVibrateBtn) {
+    settingsVibrateBtn.addEventListener("click", function () {
+      if (typeof HMNotifications === "undefined") {
+        return;
+      }
+      HMNotifications.toggleVibrate();
+      syncNotificationSettings();
     });
   }
 
@@ -395,7 +438,10 @@
     initKeyboardScroll();
     updateServerSettings();
     updateBottomNavVisibility();
-    syncSettingsSoundBtn();
+    syncNotificationSettings();
+    if (typeof HMNotifications !== "undefined") {
+      HMNotifications.init();
+    }
   });
 
   window.HMUpdateServerSettings = updateServerSettings;
@@ -405,4 +451,5 @@
   window.HMUpdateMobileChrome = updateBottomNavVisibility;
   window.HMUpdateSettingsProfile = updateSettingsProfile;
   window.HMSyncSettingsSound = syncSettingsSoundBtn;
+  window.HMSyncNotificationSettings = syncNotificationSettings;
 })();

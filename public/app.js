@@ -146,8 +146,13 @@ function clearUnreadBadge() {
   updateTabTitle();
 }
 
+window.HMBumpTabBadge = bumpUnreadBadge;
+window.HMClearTabBadge = clearUnreadBadge;
+
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden) {
+  if (!document.hidden && typeof HMNotifications !== "undefined") {
+    HMNotifications.clearUnread();
+  } else if (!document.hidden) {
     clearUnreadBadge();
   }
 });
@@ -498,6 +503,9 @@ socket.on("dm history", function (data) {
 
 // ── Sound + haptics ──
 function hapticLight() {
+  if (typeof HMNotifications !== "undefined" && !HMNotifications.isVibrateEnabled()) {
+    return;
+  }
   if (typeof window.HMHaptic === "function") {
     window.HMHaptic();
   }
@@ -942,7 +950,20 @@ chatForm.addEventListener("submit", async function (event) {
 });
 
 function shouldNotifyForIncoming(isOwn, isVisibleChat) {
+  if (typeof HMNotifications !== "undefined") {
+    return HMNotifications.shouldNotify(isOwn, isVisibleChat);
+  }
   return !isOwn && (!isVisibleChat || document.hidden);
+}
+
+function notifyIncomingMessage(title, body, tag) {
+  if (typeof HMNotifications !== "undefined") {
+    HMNotifications.notifyIncoming({ title, body, tag });
+    return;
+  }
+  if (shouldNotifyForIncoming(false, false)) {
+    bumpUnreadBadge();
+  }
 }
 
 socket.on("chat message", function (data) {
@@ -968,7 +989,8 @@ socket.on("chat message", function (data) {
     playMessageSound();
     hapticLight();
     if (shouldNotifyForIncoming(false, isVisibleChat)) {
-      bumpUnreadBadge();
+      const preview = data.text || (data.attachment ? "📎 Attachment" : "New message");
+      notifyIncomingMessage(data.name, preview.slice(0, 120), `channel-${room}-${channel}`);
     }
   }
 
@@ -999,7 +1021,8 @@ socket.on("dm message", function (data) {
     playMessageSound();
     hapticLight();
     if (shouldNotifyForIncoming(false, isVisibleChat)) {
-      bumpUnreadBadge();
+      const preview = data.text || (data.attachment ? "📎 Attachment" : "New message");
+      notifyIncomingMessage(data.from, preview.slice(0, 120), `dm-${partner}`);
     }
   }
 

@@ -237,7 +237,11 @@
           </div>
           <div class="settings-group">
             <span class="settings-label">Notifications</span>
-            <button type="button" id="settings-sound-btn" class="mini-btn settings-sound-btn">🔊 Sound on</button>
+            <div class="settings-actions settings-actions--stack">
+              <button type="button" id="settings-notify-btn" class="mini-btn settings-notify-btn">🔔 Alerts on</button>
+              <button type="button" id="settings-sound-btn" class="mini-btn settings-sound-btn">🔊 Sound on</button>
+              <button type="button" id="settings-vibrate-btn" class="mini-btn settings-vibrate-btn">📳 Vibration on</button>
+            </div>
           </div>
           <div class="settings-group">
             <span class="settings-label">Appearance</span>
@@ -356,6 +360,7 @@
     </div>
     <script src="vendor/socket.io.min.js"></script>
     <script src="connection.js"></script>
+    <script src="notifications.js"></script>
     <script src="discovery.js"></script>
     <script src="crypto.js"></script>
     <script src="themes.js"></script>

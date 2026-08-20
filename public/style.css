@@ -1680,6 +1680,15 @@ body {
   flex-wrap: wrap;
 }
 
+.settings-actions--stack {
+  flex-direction: column;
+}
+
+.settings-actions--stack .mini-btn {
+  width: 100%;
+  text-align: left;
+}
+
 .bottom-nav {
   display: flex;
   border-top: 1px solid var(--border);
