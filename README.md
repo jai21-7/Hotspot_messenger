@@ -100,6 +100,13 @@ See **[docs/PLAY-STORE.md](docs/PLAY-STORE.md)** for signing, building the AAB, 
 
 Privacy policy: **[docs/PRIVACY-POLICY.md](docs/PRIVACY-POLICY.md)** (also at `/privacy.html` when the server is running).
 
+## Phase 8 features
+
+- **Offline queue** — text messages save when disconnected and send on reconnect
+- **Voice messages** — tap 🎤 to record and send audio clips
+
+See **[docs/PHASE-8.md](docs/PHASE-8.md)** for a beginner-friendly guide.
+
 ## Learning path
 
 | Step | What you learn |
