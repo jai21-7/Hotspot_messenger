@@ -95,6 +95,67 @@ const CryptoHelper = (function () {
     return `dm:${[nameA, nameB].sort().join(":")}`;
   }
 
+  // ── Phase 9: ECDH identity keys (safer DM encryption without shared passphrase) ──
+
+  async function generateIdentityKeyPair() {
+    return crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"]
+    );
+  }
+
+  async function exportPublicKeyJwk(publicKey) {
+    return crypto.subtle.exportKey("jwk", publicKey);
+  }
+
+  async function exportPrivateKeyJwk(privateKey) {
+    return crypto.subtle.exportKey("jwk", privateKey);
+  }
+
+  async function importPublicKeyJwk(jwk) {
+    return crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      []
+    );
+  }
+
+  async function importPrivateKeyJwk(jwk) {
+    return crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"]
+    );
+  }
+
+  async function deriveSharedPassphrase(privateKey, peerPublicKey) {
+    const bits = await crypto.subtle.deriveBits(
+      { name: "ECDH", public: peerPublicKey },
+      privateKey,
+      256
+    );
+    return bufToBase64(bits);
+  }
+
+  async function fingerprintFromPublicJwk(jwk) {
+    const raw = encoder.encode(JSON.stringify(jwk));
+    const hash = await crypto.subtle.digest("SHA-256", raw);
+    const bytes = new Uint8Array(hash);
+    let hex = "";
+    for (let i = 0; i < 8; i++) {
+      hex += bytes[i].toString(16).padStart(2, "0");
+      if (i % 2 === 1 && i < 7) {
+        hex += " ";
+      }
+    }
+    return hex.toUpperCase();
+  }
+
   return {
     encryptText,
     decryptText,
@@ -102,5 +163,12 @@ const CryptoHelper = (function () {
     decryptBlob,
     roomScope,
     dmScope,
+    generateIdentityKeyPair,
+    exportPublicKeyJwk,
+    exportPrivateKeyJwk,
+    importPublicKeyJwk,
+    importPrivateKeyJwk,
+    deriveSharedPassphrase,
+    fingerprintFromPublicJwk,
   };
 })();

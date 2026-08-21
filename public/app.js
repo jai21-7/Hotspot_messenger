@@ -68,8 +68,10 @@ let unreadBadgeCount = 0;
 let pendingAttachment = null;
 const typingUsers = new Map();
 const userAvatars = new Map();
+const userPublicKeys = new Map();
 const roomPassphrases = new Map();
 const dmPassphrases = new Map();
+const ecdhDmPassphrases = new Map();
 let roomsData = {};
 
 const channelMessages = new Map();
@@ -193,7 +195,47 @@ function getRoomPassphrase(roomId) {
 }
 
 function getDmPassphrase(partner) {
-  return dmPassphrases.get(partner) || "";
+  if (dmPassphrases.has(partner)) {
+    return dmPassphrases.get(partner) || "";
+  }
+  return ecdhDmPassphrases.get(partner) || "";
+}
+
+function hasAutoDmKey(partner) {
+  return ecdhDmPassphrases.has(partner) && !dmPassphrases.has(partner);
+}
+
+async function setupEcdhDmKey(partner) {
+  if (!partner || partner === myName) {
+    return false;
+  }
+  const peerKey = userPublicKeys.get(partner);
+  if (!peerKey || typeof HMIdentity === "undefined") {
+    return false;
+  }
+  const shared = await HMIdentity.deriveDmPassphrase(peerKey);
+  if (!shared) {
+    return false;
+  }
+  ecdhDmPassphrases.set(partner, shared);
+  updateDmPrivacyHint();
+  return true;
+}
+
+function updateDmPrivacyHint() {
+  const hint = document.getElementById("dm-privacy-hint");
+  if (!hint || !activeDmPartner) {
+    return;
+  }
+  if (dmPassphrases.has(activeDmPartner)) {
+    hint.textContent = "Using shared passphrase (manual).";
+  } else if (ecdhDmPassphrases.has(activeDmPartner)) {
+    hint.textContent = "Auto-encrypted with identity keys 🔐";
+  } else if (userPublicKeys.has(activeDmPartner)) {
+    hint.textContent = "Partner has a key — opening DM will unlock auto-encrypt.";
+  } else {
+    hint.textContent = "Optional: share a passphrase, or both use identity keys for auto-encrypt.";
+  }
 }
 
 function updatePrivacyUI() {
@@ -760,7 +802,11 @@ function joinChat() {
   }
 
   myName = name;
-  socket.emit("join", { name, avatar: myAvatar });
+  const payload = { name, avatar: myAvatar };
+  if (typeof HMIdentity !== "undefined" && HMIdentity.getPublicJwk()) {
+    payload.publicKey = HMIdentity.getPublicJwk();
+  }
+  socket.emit("join", payload);
 
   hasJoined = true;
   document.body.classList.add("joined");
@@ -831,7 +877,7 @@ function setChatMode(mode, partner) {
   renderCurrentView();
 }
 
-function openDm(partner) {
+async function openDm(partner) {
   if (!hasJoined) {
     alert("Join with a name first.");
     return;
@@ -839,7 +885,9 @@ function openDm(partner) {
   if (partner === myName) {
     return;
   }
+  await setupEcdhDmKey(partner);
   setChatMode("dm", partner);
+  updateDmPrivacyHint();
   if (typeof window.HMSwitchTab === "function") {
     window.HMSwitchTab("dms");
   }
@@ -1181,18 +1229,28 @@ let lastOnlineUsers = [];
 socket.on("user list", function (users) {
   lastOnlineUsers = users;
   userAvatars.clear();
+  userPublicKeys.clear();
   if (Array.isArray(users)) {
     for (const user of users) {
       if (user && typeof user === "object" && user.name) {
         userAvatars.set(user.name, user.avatar || "😀");
+        if (user.publicKey) {
+          userPublicKeys.set(user.name, user.publicKey);
+        }
       }
     }
   }
   renderOnlineList(users);
+  if (activeDmPartner) {
+    setupEcdhDmKey(activeDmPartner);
+  }
 });
 }
 
 window.HMBootChat = async function () {
+  if (typeof HMIdentity !== "undefined") {
+    await HMIdentity.ensureKeys();
+  }
   if (!socket) {
     if (HMConnection.isNativeApp()) {
       socket = HMConnection.getSocket();
@@ -1632,7 +1690,11 @@ window.HMOnReconnect = function () {
   if (!hasJoined || !myName || !socket) {
     return;
   }
-  socket.emit("join", { name: myName, avatar: myAvatar });
+  const payload = { name: myName, avatar: myAvatar };
+  if (typeof HMIdentity !== "undefined" && HMIdentity.getPublicJwk()) {
+    payload.publicKey = HMIdentity.getPublicJwk();
+  }
+  socket.emit("join", payload);
   if (chatMode === "channel") {
     socket.emit("join channel", { room: activeRoom, channel: activeChannel });
   }

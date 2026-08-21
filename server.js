@@ -35,6 +35,7 @@ const ALLOWED_MIME = new Set([
 
 const users = new Map();
 const userAvatars = new Map();
+const userPublicKeys = new Map();
 const socketRooms = new Map();
 
 const AVATAR_OPTIONS = ["😀", "🦊", "🐼", "🐯", "🦁", "🐸", "🐙", "🦄", "🐲", "🎮", "⚡", "🌟"];
@@ -67,6 +68,7 @@ function getOnlineUsers() {
   return unique.map((name) => ({
     name,
     avatar: userAvatars.get(name) || "😀",
+    publicKey: userPublicKeys.get(name) || null,
   }));
 }
 
@@ -98,15 +100,26 @@ function getLanAddresses() {
 
 function parseJoinPayload(raw) {
   if (typeof raw === "string") {
-    return { name: raw, avatar: "😀" };
+    return { name: raw, avatar: "😀", publicKey: null };
   }
   if (raw && typeof raw === "object") {
     return {
       name: typeof raw.name === "string" ? raw.name : "",
       avatar: typeof raw.avatar === "string" ? raw.avatar : "😀",
+      publicKey: raw.publicKey && typeof raw.publicKey === "object" ? raw.publicKey : null,
     };
   }
-  return { name: "", avatar: "😀" };
+  return { name: "", avatar: "😀", publicKey: null };
+}
+
+function isValidPublicKey(jwk) {
+  return Boolean(
+    jwk &&
+      jwk.kty === "EC" &&
+      jwk.crv === "P-256" &&
+      typeof jwk.x === "string" &&
+      typeof jwk.y === "string"
+  );
 }
 
 function isValidAvatar(avatar) {
@@ -274,7 +287,7 @@ io.on("connection", (socket) => {
   socket.emit("rooms list", history.getRooms());
 
   socket.on("join", (rawPayload) => {
-    const { name: rawName, avatar: rawAvatar } = parseJoinPayload(rawPayload);
+    const { name: rawName, avatar: rawAvatar, publicKey } = parseJoinPayload(rawPayload);
     const name = rawName.trim().slice(0, 24);
     if (!name) {
       return;
@@ -285,6 +298,11 @@ io.on("connection", (socket) => {
 
     users.set(socket.id, name);
     userAvatars.set(name, avatar);
+    if (isValidPublicKey(publicKey)) {
+      userPublicKeys.set(name, publicKey);
+    } else {
+      userPublicKeys.delete(name);
+    }
 
     if (!socketRooms.has(socket.id)) {
       socketRooms.set(socket.id, { room: "main", channel: "general" });
@@ -548,6 +566,7 @@ io.on("connection", (socket) => {
       const stillOnline = getSocketIdsByName(name).length > 0;
       if (!stillOnline) {
         userAvatars.delete(name);
+        userPublicKeys.delete(name);
       }
       io.emit("user list", getOnlineUsers());
 
