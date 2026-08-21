@@ -228,6 +228,17 @@
             <p id="settings-profile-display" class="settings-value">—</p>
           </div>
           <div class="settings-group">
+            <span class="settings-label">Identity key (Phase 9)</span>
+            <p class="settings-hint">
+              Your device makes a private key so DMs can encrypt automatically — no shared passphrase needed.
+            </p>
+            <p id="identity-fingerprint" class="settings-value identity-fingerprint">Loading…</p>
+            <div class="settings-actions">
+              <button type="button" id="copy-fingerprint-btn" class="mini-btn">Copy fingerprint</button>
+              <button type="button" id="regenerate-identity-btn" class="mini-btn">New key</button>
+            </div>
+          </div>
+          <div class="settings-group">
             <span class="settings-label">Server</span>
             <p id="server-url-display" class="settings-value">Not connected</p>
             <div class="settings-actions">
@@ -301,6 +312,7 @@
           <input id="dm-passphrase" type="password" placeholder="DM passphrase (optional)" maxlength="64" />
           <button type="button" id="unlock-dm-btn" class="mini-btn">🔐</button>
         </div>
+        <p id="dm-privacy-hint" class="dm-privacy-hint">Optional: share a passphrase, or both use identity keys for auto-encrypt.</p>
       </div>
 
       <div class="search-bar" id="search-bar" hidden>

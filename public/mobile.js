@@ -27,6 +27,9 @@
   const settingsSoundBtn = document.getElementById("settings-sound-btn");
   const settingsNotifyBtn = document.getElementById("settings-notify-btn");
   const settingsVibrateBtn = document.getElementById("settings-vibrate-btn");
+  const identityFingerprintEl = document.getElementById("identity-fingerprint");
+  const copyFingerprintBtn = document.getElementById("copy-fingerprint-btn");
+  const regenerateIdentityBtn = document.getElementById("regenerate-identity-btn");
   const openThemeBtn = document.getElementById("open-theme-btn");
   const themeToggle = document.getElementById("theme-toggle");
   const themePanel = document.getElementById("theme-panel");
@@ -407,6 +410,58 @@
     });
   }
 
+  async function refreshIdentitySettings() {
+    if (!identityFingerprintEl || typeof HMIdentity === "undefined") {
+      return;
+    }
+    try {
+      const info = await HMIdentity.ensureKeys();
+      identityFingerprintEl.textContent = info.fingerprint || "—";
+    } catch (error) {
+      identityFingerprintEl.textContent = "Could not load identity key";
+    }
+  }
+
+  if (copyFingerprintBtn) {
+    copyFingerprintBtn.addEventListener("click", async function () {
+      if (typeof HMIdentity === "undefined") {
+        return;
+      }
+      await HMIdentity.ensureKeys();
+      const fp = HMIdentity.getFingerprint();
+      try {
+        await navigator.clipboard.writeText(fp);
+        copyFingerprintBtn.textContent = "Copied!";
+        window.setTimeout(function () {
+          copyFingerprintBtn.textContent = "Copy fingerprint";
+        }, 2000);
+      } catch (error) {
+        prompt("Copy fingerprint:", fp);
+      }
+    });
+  }
+
+  if (regenerateIdentityBtn) {
+    regenerateIdentityBtn.addEventListener("click", async function () {
+      if (typeof HMIdentity === "undefined") {
+        return;
+      }
+      if (
+        !confirm(
+          "Create a new identity key? Old auto-encrypted DMs may not decrypt until friends rejoin."
+        )
+      ) {
+        return;
+      }
+      await HMIdentity.regenerateKeys();
+      await refreshIdentitySettings();
+      if (typeof window.HMRepublishIdentity === "function") {
+        window.HMRepublishIdentity();
+      }
+      alert("New identity key created. Rejoin or reconnect so friends get your new public key.");
+    });
+  }
+
   if (settingsVibrateBtn) {
     settingsVibrateBtn.addEventListener("click", function () {
       if (typeof HMNotifications === "undefined") {
@@ -439,6 +494,7 @@
     updateServerSettings();
     updateBottomNavVisibility();
     syncNotificationSettings();
+    refreshIdentitySettings();
     if (typeof HMNotifications !== "undefined") {
       HMNotifications.init();
     }

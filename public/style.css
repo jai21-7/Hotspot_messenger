@@ -1310,6 +1310,23 @@ body.joined .join-hint {
   font-size: 0.75rem;
 }
 
+.dm-privacy-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.user-key-badge {
+  margin-left: 0.2rem;
+  font-size: 0.75rem;
+}
+
+.identity-fingerprint {
+  font-family: ui-monospace, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
 /* ── Attachments ── */
 .message-attachment {
   margin-top: 0.4rem;

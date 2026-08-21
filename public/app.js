@@ -364,7 +364,7 @@ unlockRoomBtn.addEventListener("click", function () {
   renderCurrentView();
 });
 
-unlockDmBtn.addEventListener("click", function () {
+.unlockDmBtn.addEventListener("click", function () {
   if (!activeDmPartner) {
     return;
   }
@@ -374,6 +374,7 @@ unlockDmBtn.addEventListener("click", function () {
     return;
   }
   dmPassphrases.set(activeDmPartner, pass);
+  updateDmPrivacyHint();
   renderCurrentView();
 });
 
@@ -1317,6 +1318,13 @@ function renderOnlineList(users) {
 
     chip.appendChild(avatar);
     chip.appendChild(label);
+    if (userPublicKeys.has(name)) {
+      const keyBadge = document.createElement("span");
+      keyBadge.className = "user-key-badge";
+      keyBadge.title = "Has identity key — DMs can auto-encrypt";
+      keyBadge.textContent = "🔑";
+      chip.appendChild(keyBadge);
+    }
     onlineListEl.appendChild(chip);
   }
   syncDmNavBadge();
@@ -1685,6 +1693,17 @@ function buildSystemMessageEl(text) {
   messageEl.appendChild(highlightText(text));
   return messageEl;
 }
+
+window.HMRepublishIdentity = function () {
+  if (!hasJoined || !myName || !socket) {
+    return;
+  }
+  const payload = { name: myName, avatar: myAvatar };
+  if (typeof HMIdentity !== "undefined" && HMIdentity.getPublicJwk()) {
+    payload.publicKey = HMIdentity.getPublicJwk();
+  }
+  socket.emit("join", payload);
+};
 
 window.HMOnReconnect = function () {
   if (!hasJoined || !myName || !socket) {
