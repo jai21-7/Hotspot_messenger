@@ -26,6 +26,11 @@ const ALLOWED_MIME = new Set([
   "application/pdf",
   "text/plain",
   "application/zip",
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/aac",
 ]);
 
 const users = new Map();
@@ -48,7 +53,7 @@ const upload = multer({
   }),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: function (req, file, cb) {
-    if (ALLOWED_MIME.has(file.mimetype) || file.mimetype.startsWith("image/")) {
+    if (ALLOWED_MIME.has(file.mimetype) || file.mimetype.startsWith("image/") || file.mimetype.startsWith("audio/")) {
       cb(null, true);
     } else {
       cb(new Error("File type not allowed"));
