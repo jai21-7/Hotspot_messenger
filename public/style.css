@@ -1633,6 +1633,43 @@ body {
   color: #991b1b;
 }
 
+.offline-queue-badge {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 0.75rem;
+}
+
+.composer-icon-btn.recording {
+  background: #fee2e2;
+  color: #991b1b;
+  animation: pulse-rec 1s ease-in-out infinite;
+}
+
+@keyframes pulse-rec {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.voice-status {
+  margin: 0.35rem 1rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.voice-status--active {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .tab-panel {
   flex-shrink: 0;
 }
