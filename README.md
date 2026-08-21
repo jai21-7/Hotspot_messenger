@@ -107,6 +107,14 @@ Privacy policy: **[docs/PRIVACY-POLICY.md](docs/PRIVACY-POLICY.md)** (also at `/
 
 See **[docs/PHASE-8.md](docs/PHASE-8.md)** for a beginner-friendly guide.
 
+## Phase 9 features
+
+- **Identity keys** — each device has a private/public key pair
+- **Auto DM encryption** — DMs encrypt when both users have keys (no shared passphrase required)
+- **Fingerprint** — Settings shows a short code you can verify with friends
+
+See **[docs/PHASE-9.md](docs/PHASE-9.md)** for a beginner-friendly guide.
+
 ## Learning path
 
 | Step | What you learn |

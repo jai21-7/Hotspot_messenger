@@ -34,7 +34,8 @@ Friends see an audio player in the chat bubble.
 
 | Feature | What it means |
 |---------|----------------|
-| Better encryption keys | Safer private rooms without sharing a passphrase manually |
 | Bluetooth / Wi‑Fi Direct | Chat without a Wi‑Fi router at all |
 | Desktop app (Electron) | Same app on Windows/Mac as a desktop program |
 | Cloud accounts | Only if you add internet servers later |
+
+**Built in Phase 9:** Safer DM encryption with identity keys — see [PHASE-9.md](PHASE-9.md).
