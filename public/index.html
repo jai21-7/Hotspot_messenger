@@ -148,6 +148,7 @@
 
       <div id="connection-status" class="connection-status connection-status--offline" hidden role="status">
         <span id="connection-status-text">Offline</span>
+        <span id="offline-queue-badge" class="offline-queue-badge" hidden title="Messages waiting to send">0</span>
       </div>
 
       <div id="tab-rooms" class="tab-panel">
@@ -345,7 +346,10 @@
           <button type="button" id="attach-btn" class="composer-icon-btn" title="Attach file or image" disabled>
             📎
           </button>
-          <input type="file" id="file-input" accept="image/*,.pdf,.txt,.zip" hidden />
+          <button type="button" id="voice-btn" class="composer-icon-btn" title="Record voice message" disabled aria-pressed="false">
+            🎤
+          </button>
+          <input type="file" id="file-input" accept="image/*,.pdf,.txt,.zip,audio/*" hidden />
           <button type="button" id="emoji-toggle" class="composer-icon-btn" title="Add emoji" disabled>
             😀
           </button>
@@ -368,6 +372,7 @@
             <span class="send-icon" aria-hidden="true">➤</span>
           </button>
         </div>
+        <p id="voice-status" class="voice-status" hidden></p>
       </form>
 
       <nav id="bottom-nav" class="bottom-nav" hidden aria-label="Main navigation">
@@ -393,6 +398,7 @@
     </div>
     <script src="vendor/socket.io.min.js"></script>
     <script src="connection.js"></script>
+    <script src="offline-queue.js"></script>
     <script src="notifications.js"></script>
     <script src="discovery.js"></script>
     <script src="host.js"></script>
@@ -402,5 +408,6 @@
     <script src="app.js"></script>
     <script src="native.js"></script>
     <script src="mobile.js"></script>
+    <script src="voice.js"></script>
   </body>
 </html>

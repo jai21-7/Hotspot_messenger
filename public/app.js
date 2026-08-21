@@ -770,6 +770,9 @@ function joinChat() {
   sendButton.disabled = false;
   emojiToggle.disabled = false;
   attachBtn.disabled = false;
+  if (typeof window.HMVoice !== "undefined") {
+    window.HMVoice.setEnabled(true);
+  }
   searchBarEl.hidden = false;
   roomsSectionEl.hidden = false;
   renderRoomsUI();
@@ -880,16 +883,55 @@ chatForm.addEventListener("submit", async function (event) {
   emitTyping(false);
   emojiPicker.hidden = true;
 
+  const sent = await sendChatMessage({ text });
+  if (sent) {
+    messageInput.value = "";
+    updateCharCounter();
+    messageInput.focus();
+    hapticLight();
+  }
+});
+
+async function sendChatMessage(options) {
+  const text = (options && options.text) || "";
+  const fromQueue = Boolean(options && options.fromQueue);
+  const mode = fromQueue ? options.chatMode : chatMode;
+  const room = fromQueue ? options.room : activeRoom;
+  const channel = fromQueue ? options.channel : activeChannel;
+  const dmPartner = fromQueue ? options.dmPartner : activeDmPartner;
+
+  if (
+    typeof HMOfflineQueue !== "undefined" &&
+    !HMOfflineQueue.isOnline() &&
+    !fromQueue
+  ) {
+    if (pendingAttachment) {
+      alert("Connect to the server to send files and voice messages.");
+      return false;
+    }
+    if (!text) {
+      return false;
+    }
+    HMOfflineQueue.enqueue({
+      text,
+      chatMode: mode,
+      room,
+      channel,
+      dmPartner,
+    });
+    return true;
+  }
+
   let attachment = null;
   try {
-    if (pendingAttachment) {
+    if (pendingAttachment && !fromQueue) {
       let fileToUpload = pendingAttachment;
       let encIv = null;
-      if (chatMode === "channel" && isRoomEncrypted(activeRoom) && getRoomPassphrase(activeRoom)) {
+      if (mode === "channel" && isRoomEncrypted(room) && getRoomPassphrase(room)) {
         const enc = await CryptoHelper.encryptBlob(
           pendingAttachment,
-          getRoomPassphrase(activeRoom),
-          CryptoHelper.roomScope(activeRoom)
+          getRoomPassphrase(room),
+          CryptoHelper.roomScope(room)
         );
         fileToUpload = new File([enc.blob], pendingAttachment.name + ".enc", {
           type: "application/octet-stream",
@@ -910,10 +952,10 @@ chatForm.addEventListener("submit", async function (event) {
       showPendingAttachment();
     }
 
-    if (chatMode === "dm" && activeDmPartner) {
-      const dmPass = getDmPassphrase(activeDmPartner);
-      const scope = CryptoHelper.dmScope(myName, activeDmPartner);
-      const payload = { to: activeDmPartner, attachment };
+    if (mode === "dm" && dmPartner) {
+      const dmPass = getDmPassphrase(dmPartner);
+      const scope = CryptoHelper.dmScope(myName, dmPartner);
+      const payload = { to: dmPartner, attachment };
       if (text && dmPass) {
         const enc = await CryptoHelper.encryptText(text, dmPass, scope);
         payload.encrypted = true;
@@ -924,30 +966,44 @@ chatForm.addEventListener("submit", async function (event) {
       }
       socket.emit("dm message", payload);
     } else {
-      const roomPass = getRoomPassphrase(activeRoom);
-      const scope = CryptoHelper.roomScope(activeRoom);
+      const roomPass = getRoomPassphrase(room);
+      const scope = CryptoHelper.roomScope(room);
       const payload = { attachment };
       if (text) {
         const prepared = await prepareOutgoingText(
           text,
           scope,
           roomPass,
-          isRoomEncrypted(activeRoom)
+          isRoomEncrypted(room)
         );
         Object.assign(payload, prepared);
       }
       socket.emit("chat message", payload);
     }
   } catch (error) {
-    alert(error.message || "Could not send message.");
-    return;
+    if (!fromQueue) {
+      alert(error.message || "Could not send message.");
+    }
+    return false;
   }
 
-  messageInput.value = "";
-  updateCharCounter();
-  messageInput.focus();
-  hapticLight();
-});
+  return true;
+}
+
+window.HMSetPendingAttachment = function (file) {
+  pendingAttachment = file;
+  showPendingAttachment();
+};
+
+window.HMFlushOfflineQueue = async function () {
+  if (typeof HMOfflineQueue === "undefined") {
+    return;
+  }
+  const sent = await HMOfflineQueue.flush(sendChatMessage);
+  if (sent > 0 && typeof window.HMHaptic === "function") {
+    window.HMHaptic();
+  }
+};
 
 function shouldNotifyForIncoming(isOwn, isVisibleChat) {
   if (typeof HMNotifications !== "undefined") {
@@ -1274,6 +1330,12 @@ async function appendAttachment(parent, msg, scope, passphrase) {
         img.src = URL.createObjectURL(plain);
         img.alt = msg.attachment.name;
         wrap.appendChild(img);
+      } else if ((msg.attachment.mime || "").startsWith("audio/")) {
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = URL.createObjectURL(plain);
+        audio.preload = "metadata";
+        wrap.appendChild(audio);
       } else {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(plain);
@@ -1289,6 +1351,12 @@ async function appendAttachment(parent, msg, scope, passphrase) {
     img.src = HMConnection.resolveAssetUrl(msg.attachment.url);
     img.alt = msg.attachment.name;
     wrap.appendChild(img);
+  } else if ((msg.attachment.mime || "").startsWith("audio/")) {
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = HMConnection.resolveAssetUrl(msg.attachment.url);
+    audio.preload = "metadata";
+    wrap.appendChild(audio);
   } else {
     const link = document.createElement("a");
     link.href = HMConnection.resolveAssetUrl(msg.attachment.url);
@@ -1567,6 +1635,9 @@ window.HMOnReconnect = function () {
   socket.emit("join", { name: myName, avatar: myAvatar });
   if (chatMode === "channel") {
     socket.emit("join channel", { room: activeRoom, channel: activeChannel });
+  }
+  if (typeof window.HMFlushOfflineQueue === "function") {
+    window.HMFlushOfflineQueue();
   }
 };
 
